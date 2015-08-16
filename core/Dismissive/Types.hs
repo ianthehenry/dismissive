@@ -28,19 +28,19 @@ Code sql=codes
   code Text
   generatedAt UTCTime
   valid Bool
-  idUser UserId
+  userId UserId
   UniqueCode code
   deriving Show
 Token sql=tokens
   token Text
-  idUser UserId
+  userId UserId
   UniqueToken token
   deriving Show
 Message sql=messages
   subject Text Maybe
   body Text
-  send_at UTCTime
+  sendAt UTCTime
   sent Bool
-  idUser UserId
+  userId UserId
   deriving Show
 |]

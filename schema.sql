@@ -10,13 +10,13 @@ CREATE TABLE messages (
   body TEXT NOT NULL,
   send_at TIMESTAMP NOT NULL,
   sent BOOLEAN NOT NULL,
-  id_user INTEGER NOT NULL REFERENCES users(id)
+  user_id INTEGER NOT NULL REFERENCES users(id)
 );
 
 CREATE TABLE tokens (
   id SERIAL PRIMARY KEY NOT NULL,
   token TEXT UNIQUE NOT NULL,
-  id_user INTEGER NOT NULL REFERENCES users(id)
+  user_id INTEGER NOT NULL REFERENCES users(id)
 );
 
 CREATE TABLE codes (
@@ -24,5 +24,5 @@ CREATE TABLE codes (
   code TEXT UNIQUE NOT NULL,
   generated_at TIMESTAMP NOT NULL,
   valid BOOLEAN NOT NULL,
-  id_user INTEGER NOT NULL REFERENCES users(id)
+  user_id INTEGER NOT NULL REFERENCES users(id)
 );

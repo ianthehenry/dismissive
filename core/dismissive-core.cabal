@@ -13,6 +13,7 @@ library
                , persistent-template ==2.1.*
                , persistent-postgresql ==2.2, monad-logger
                , base16-bytestring ==0.1.1.*
+               , esqueleto
                , mtl ==2.2.*, transformers
                , random ==1.1.*
                , time ==1.5.*
