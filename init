@@ -1,0 +1,16 @@
+#!/usr/bin/env sh
+
+set -e
+
+services="core receiver"
+
+for service in $services; do
+  cd "$service"
+  cabal sandbox init
+  if [ ! "$service" == "core" ]; then
+    cabal sandbox add-source ../core
+    ln -s ../conf shared.conf
+  fi
+  cabal install --only-dependencies -j
+  cd ..
+done
