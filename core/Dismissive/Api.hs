@@ -8,6 +8,7 @@ module Dismissive.Api (
   runDismissiveT,
   withDismissiveIO,
   getUser,
+  markSent,
   unsentMessages,
   insertMessage,
   Entity(..)
@@ -48,6 +49,11 @@ unsentMessages = run $ do
     where_ (not_ $ message ^. MessageSent)
     where_ (message ^. MessageSendAt <=. val now)
     return (message, user)
+
+markSent :: MessageId -> DismissiveIO ()
+markSent messageId = run $ update $ \message -> do
+  set message [MessageSent =. val True]
+  where_ (message ^. MessageId ==. val messageId)
 
 run :: SqlPersistM a -> DismissiveIO a
 run action = do
