@@ -2,7 +2,7 @@
 
 set -e
 
-services="core receiver"
+services="core receiver mailer"
 
 for service in $services; do
   cd "$service"
