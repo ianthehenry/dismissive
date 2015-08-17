@@ -8,13 +8,12 @@ import qualified Data.Configurator as Conf
 import Mailer
 import Dismissive.Types
 
-emailForMessage :: Text -> (Entity Message, Entity User) -> Email
-emailForMessage domain ( Entity { entityKey = messageId, entityVal = message }
-                       , Entity { entityVal = User { userEmail = toEmail } }
-                       ) =
-  Email toEmail "Dismissive" fromEmail replyToEmail subject body
-  where replyToEmail = mconcat ["snooze+", keyShow messageId, "@", domain]
-        fromEmail = "reminder@" <> domain
+emailForMessage :: (Entity Message, Entity User) -> LocalEmail
+emailForMessage ( Entity { entityKey = messageId, entityVal = message }
+                , Entity { entityVal = User { userEmail = toEmail } }
+                ) =
+  LocalEmail toEmail "Dismissive" "reminder" replyTo subject body
+  where replyTo = Text.intercalate "+" ["snooze", keyShow messageId]
         subject = fromMaybe "Reminder!" (messageSubject message)
         body = messageBody message
 
@@ -24,12 +23,12 @@ main = do
   connStr <- Conf.require conf "conn"
   mandrillKey <- Conf.require conf "mandrill-key"
   domain <- Conf.require conf "mail-domain"
-  let mailer = newMailer mandrillKey
+  let mailer = Mailer mandrillKey domain
 
   withDismissiveIO connStr $ do
     messages <- unsentMessages
     liftIO $ putStrLn $ mconcat ["sending ", show (length messages), " messages"]
     for_ messages $ \(message, user) -> do
-      let email = emailForMessage domain (message, user)
+      let email = emailForMessage (message, user)
       runEitherT $ runReaderT (sendMail email) mailer
       markSent (entityKey message)

@@ -11,28 +11,54 @@ import Data.Text (Text)
 import Dismissive.Types (EmailAddress)
 import Network.Wreq
 
-data Mailer = Mailer { mailerKey :: Text }
+data Mailer =
+  Mailer { mailerKey :: Text
+         , mailerDomain :: Text
+         }
 
-newMailer :: Text -> Mailer
-newMailer key = Mailer { mailerKey = key }
+data Email =
+  Email { emailTo :: EmailAddress
+        , emailFromName :: Text
+        , emailFrom :: EmailAddress
+        , emailReplyTo :: EmailAddress
+        , emailSubject :: Text
+        , emailBody :: Text
+        }
 
-data Email = Email { emailTo :: EmailAddress
-                   , emailFromName :: Text
-                   , emailFromEmail :: EmailAddress
-                   , emailReplyTo :: EmailAddress
-                   , emailSubject :: Text
-                   , emailBody :: Text
-                   }
+type EmailAddressLocal = Text
+
+data LocalEmail =
+  LocalEmail { localEmailTo :: EmailAddress
+             , localEmailFromName :: Text
+             , localEmailFrom :: EmailAddressLocal
+             , localEmailReplyTo :: EmailAddressLocal
+             , localEmailSubject :: Text
+             , localEmailBody :: Text
+             }
+
+fullEmail :: Text -> EmailAddressLocal -> EmailAddress
+fullEmail domain local = local <> "@" <> domain
+
+globalize :: Text -> LocalEmail -> Email
+globalize domain LocalEmail {..} =
+  Email { emailTo = localEmailTo
+        , emailFromName = localEmailFromName
+        , emailFrom = fullEmail domain localEmailFrom
+        , emailReplyTo = fullEmail domain localEmailReplyTo
+        , emailSubject = localEmailSubject
+        , emailBody = localEmailBody
+        }
 
 instance ToJSON Email where
-  toJSON Email{..} = object [ "auto_html" .= False
-                            , "to" .= [object ["email" .= emailTo]]
-                            , "from_name" .= emailFromName
-                            , "from_email" .= emailFromEmail
-                            , "headers" .= object ["Reply-To" .= emailReplyTo]
-                            , "subject" .= emailSubject
-                            , "text" .= emailBody
-                            ]
+  toJSON Email{..} =
+    object [ "auto_html" .= False
+           , "to" .= [object ["email" .= emailTo]]
+           , "from_name" .= emailFromName
+           , "from_email" .= emailFrom
+           , "headers" .= object ["Reply-To" .= emailReplyTo]
+           , "subject" .= emailSubject
+           , "text" .= emailBody
+           ]
 
 mandrill :: MonadIO m => Email -> ReaderT Mailer m (Response ByteString)
 mandrill email = do
@@ -80,9 +106,10 @@ ensure :: Monad m => Bool -> a -> EitherT a m ()
 ensure True  _   = return ()
 ensure False err = left err
 
-sendMail :: MonadIO m => Email -> ReaderT Mailer (EitherT SendError m) ()
-sendMail email = do
-  res <- mandrill email
+sendMail :: MonadIO m => LocalEmail -> ReaderT Mailer (EitherT SendError m) ()
+sendMail localEmail = do
+  domain <- asks mailerDomain
+  res <- mandrill (globalize domain localEmail)
   let status = res ^. responseStatus.statusCode
   lift $ ensure (status == 200) (UnrecognizedStatusCode status)
   let maybeResponses = res ^. responseJSON
