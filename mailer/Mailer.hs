@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleContexts #-}
+
 module Mailer where
 
 import BasePrelude hiding (left)
@@ -60,12 +62,6 @@ instance ToJSON Email where
            , "text" .= emailBody
            ]
 
-mandrill :: MonadIO m => Email -> ReaderT Mailer m (Response ByteString)
-mandrill email = do
-  key <- asks mailerKey
-  let body = object ["message" .= email, "key" .= key]
-  liftIO $ post "https://mandrillapp.com/api/1.0/messages/send" (toJSON body)
-
 data MandrillError = InvalidKey
                    | PaymentRequired
                    | UnknownSubaccount
@@ -106,15 +102,21 @@ ensure :: Monad m => Bool -> a -> EitherT a m ()
 ensure True  _   = return ()
 ensure False err = left err
 
-sendMail :: MonadIO m => LocalEmail -> ReaderT Mailer (EitherT SendError m) ()
-sendMail localEmail = do
+mandrill :: (MonadIO m, MonadReader Mailer m) => Email -> m (Response ByteString)
+mandrill email = do
+  key <- asks mailerKey
+  let body = object ["message" .= email, "key" .= key]
+  liftIO $ post "https://mandrillapp.com/api/1.0/messages/send" (toJSON body)
+
+sendMail :: MonadIO m => LocalEmail -> ReaderT Mailer m (Either SendError ())
+sendMail localEmail = runEitherT $ do
   domain <- asks mailerDomain
   res <- mandrill (globalize domain localEmail)
   let status = res ^. responseStatus.statusCode
-  lift $ ensure (status == 200) (UnrecognizedStatusCode status)
+  ensure (status == 200) (UnrecognizedStatusCode status)
   let maybeResponses = res ^. responseJSON
   case maybeResponses of
     Just [MSuccess _]  -> return ()
-    Just [MRejected r] -> lift $ left (Rejected r)
-    Just [MError e]    -> lift $ left (MandrillError e)
-    _ -> lift $ left MalformedResponse
+    Just [MRejected r] -> left (Rejected r)
+    Just [MError e]    -> left (MandrillError e)
+    _                  -> left MalformedResponse

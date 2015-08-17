@@ -2,7 +2,6 @@ import BasePrelude hiding (insert)
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Control.Monad.Reader
-import Control.Monad.Trans.Either
 import Dismissive.Api
 import qualified Data.Configurator as Conf
 import Mailer
@@ -30,5 +29,5 @@ main = do
     liftIO $ putStrLn $ mconcat ["sending ", show (length messages), " messages"]
     for_ messages $ \(message, user) -> do
       let email = emailForMessage (message, user)
-      runEitherT $ runReaderT (sendMail email) mailer
+      runReaderT (sendMail email) mailer
       markSent (entityKey message)
