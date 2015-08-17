@@ -1,5 +1,6 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Dismissive.Api (
   Dismissive,
@@ -11,11 +12,14 @@ module Dismissive.Api (
   markSent,
   unsentMessages,
   insertMessage,
-  Entity(..)
+  Entity(..),
+  keyShow,
+  keyRead
 ) where
 
 import BasePrelude hiding (insert, on)
 import Data.Text (Text)
+import qualified Data.Text as Text
 import Data.Functor.Identity
 import Control.Monad.IO.Class
 import Control.Monad.Reader
@@ -25,9 +29,17 @@ import Dismissive.Types
 import Control.Monad.Logger
 import Data.Time.Clock
 
+keyShow :: ToBackendKey SqlBackend r => Key r -> Text
+keyShow = Text.pack . show . fromSqlKey
+
+keyRead :: ToBackendKey SqlBackend r => Text -> Key r
+keyRead = toSqlKey . read . Text.unpack
+
 newtype DismissiveT m a =
   DismissiveT { unDismissiveT :: ReaderT ConnectionPool m a
-              } deriving (Monad, MonadIO, MonadReader ConnectionPool, Functor, Applicative)
+              } deriving ( Functor, Applicative, Monad
+                         , MonadIO, MonadReader ConnectionPool
+                         )
 type DismissiveIO a = forall m. MonadIO m => DismissiveT m a
 type Dismissive = DismissiveT Identity
 

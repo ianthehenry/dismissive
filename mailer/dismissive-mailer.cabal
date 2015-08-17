@@ -26,5 +26,6 @@ executable mailer
                     , NamedFieldPuns
                     , RecordWildCards
                     , LambdaCase
+                    , ViewPatterns
 
   default-language: Haskell2010
