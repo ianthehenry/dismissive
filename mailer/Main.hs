@@ -11,9 +11,8 @@ emailForReminder :: (Entity Reminder, Entity User) -> LocalEmail
 emailForReminder ( Entity { entityKey = reminderId, entityVal = reminder }
                  , Entity { entityVal = User { userEmail = toEmail } }
                  ) =
-  LocalEmail toEmail "Dismissive" "reminder" replyTo subject body
+  LocalEmail toEmail "Dismissive" "reminder" replyTo "Reminder!" body
   where replyTo = Text.intercalate "+" ["snooze", keyShow reminderId]
-        subject = fromMaybe "Reminder!" (reminderSubject reminder)
         body = reminderBody reminder
 
 main :: IO ()

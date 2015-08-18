@@ -28,7 +28,7 @@ reminderify Message { subject, from, body } = do
     Nothing -> return Nothing
     Just sender -> do
       now <- liftIO getCurrentTime
-      let reminder = Reminder (Just subject) body now False (entityKey sender)
+      let reminder = Reminder body now False (entityKey sender)
       liftIO (print reminder)
       return (Just reminder)
 
