@@ -28,5 +28,6 @@ main = do
     liftIO $ putStrLn $ mconcat ["sending ", show (length reminders), " reminders"]
     for_ reminders $ \(reminder, user) -> do
       let email = emailForReminder (reminder, user)
-      runReaderT (sendMail email) mailer
-      markSent (entityKey reminder)
+      result <- runReaderT (sendMail email) mailer
+      when (isRight result) $
+        markSent (entityKey reminder)
