@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+
+set -e
+
+cd "$1"
+cabal configure
+cabal build
