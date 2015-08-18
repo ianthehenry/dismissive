@@ -16,6 +16,8 @@ CREATE TABLE messages (
 CREATE TABLE tokens (
   id SERIAL PRIMARY KEY NOT NULL,
   token TEXT UNIQUE NOT NULL,
+  read BOOLEAN NOT NULL,
+  append BOOLEAN NOT NULL,
   user_id INTEGER NOT NULL REFERENCES users(id)
 );
 

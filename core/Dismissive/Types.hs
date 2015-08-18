@@ -33,6 +33,8 @@ Code sql=codes
   deriving Show
 Token sql=tokens
   token Text
+  read Bool
+  append Bool
   userId UserId
   UniqueToken token
   deriving Show
