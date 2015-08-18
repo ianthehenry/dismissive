@@ -18,10 +18,12 @@ library
                , random ==1.1.*
                , time ==1.5.*
                , text ==1.2.*
+               , either
 
   exposed-modules: Dismissive.Types, Dismissive.Api, Dismissive.Internal.Types
 
   default-extensions: OverloadedStrings
                     , NoImplicitPrelude
+                    , ViewPatterns
 
   default-language: Haskell2010

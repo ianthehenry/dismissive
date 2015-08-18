@@ -19,10 +19,10 @@ import Servant (FromFormUrlEncoded, fromFormUrlEncoded)
 
 type EmailAddress = Text
 
-data Message = Message { to :: EmailAddress
-                       , from :: EmailAddress
-                       , body :: Text
-                       , subject :: Text
+data Message = Message { messageTo :: EmailAddress
+                       , messageFrom :: EmailAddress
+                       , messageBody :: Text
+                       , messageSubject :: Text
                        } deriving (Generic, Show)
 
 instance FromJSON Message where

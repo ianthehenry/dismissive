@@ -9,6 +9,7 @@ import Control.Monad.Trans.Either
 import qualified Data.Configurator as Conf
 import Data.Time.Clock
 import Data.Text (Text)
+import qualified Data.Text as Text
 import Dismissive.Api
 import Dismissive.Types
 import Network.Wai
@@ -21,16 +22,8 @@ type Api = ReqBody '[FormUrlEncoded] [MandrillEvent] :> Post '[JSON] ()
 api :: Proxy Api
 api = Proxy
 
-reminderify :: Message -> DismissiveIO (Maybe Reminder)
-reminderify Message { subject, from, body } = do
-  maybeSender <- getUser from
-  case maybeSender of
-    Nothing -> return Nothing
-    Just sender -> do
-      now <- liftIO getCurrentTime
-      let reminder = Reminder body now False (entityKey sender)
-      liftIO (print reminder)
-      return (Just reminder)
+extractToken :: Message -> Text
+extractToken = head . Text.split (== '@') . messageTo
 
 type Dismiss = DismissiveT (EitherT ServantErr IO) :~> EitherT ServantErr IO
 
@@ -41,8 +34,9 @@ dismissiveToEither = do
 
 handleMessage :: Text -> Message -> DismissiveIO ()
 handleMessage "inbound" message = do
-  maybeReminder <- reminderify message
-  maybe (return ()) insertReminder maybeReminder
+  let token = extractToken message
+  now <- liftIO getCurrentTime
+  void $ addReminder token now (messageBody message)
 handleMessage _ _ = return ()
 
 uncurryEvent :: (Text -> Message -> a) -> MandrillEvent -> a

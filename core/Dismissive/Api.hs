@@ -11,17 +11,19 @@ module Dismissive.Api (
   getUser,
   markSent,
   unsentReminders,
-  insertReminder,
+  addReminder,
   Entity(..),
+  TokenError(..),
   keyShow,
   keyRead
 ) where
 
-import BasePrelude hiding (insert, on)
+import BasePrelude hiding (insert, on, left)
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Functor.Identity
 import Control.Monad.IO.Class
+import Control.Monad.Trans.Either
 import Control.Monad.Reader
 import Database.Esqueleto
 import Database.Persist.Postgresql (withPostgresqlPool, ConnectionString, ConnectionPool, runSqlPersistMPool)
@@ -72,5 +74,26 @@ run action = do
   pool <- ask
   liftIO $ runSqlPersistMPool action pool
 
+data TokenError = TokenNotFound
+                | TokenLacksAppend
+                | TokenLacksRead
+                  deriving (Eq, Show)
+
+liftMaybe :: Monad m => a -> Maybe b -> EitherT a m b
+liftMaybe err Nothing = left err
+liftMaybe _ (Just x)  = pure x
+
+ensure :: Monad m => Bool -> a -> EitherT a m ()
+ensure True  _   = return ()
+ensure False err = left err
+
 insertReminder :: Reminder -> DismissiveIO ()
 insertReminder reminder = (void . run) (insert reminder)
+
+addReminder :: Text -> UTCTime -> Text -> DismissiveIO (Either TokenError ())
+addReminder tokenText sendAt text = runEitherT $ do
+  (entityVal -> token) <- liftMaybe TokenNotFound =<< lift (run query)
+  ensure (tokenAppend token) TokenLacksAppend
+  let reminder = Reminder text sendAt False (tokenUserId token)
+  lift (insertReminder reminder)
+  where query = getBy (UniqueToken tokenText)
