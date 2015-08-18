@@ -38,7 +38,7 @@ Token sql=tokens
   userId UserId
   UniqueToken token
   deriving Show
-Message sql=messages
+Reminder sql=reminders
   subject Text Maybe
   body Text
   sendAt UTCTime

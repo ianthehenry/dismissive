@@ -10,7 +10,7 @@ import qualified Data.Configurator as Conf
 import Data.Time.Clock
 import Data.Text (Text)
 import Dismissive.Api
-import qualified Dismissive.Types as Dismissive
+import Dismissive.Types
 import Network.Wai
 import Network.Wai.Handler.Warp
 import Servant
@@ -21,16 +21,16 @@ type Api = ReqBody '[FormUrlEncoded] [MandrillEvent] :> Post '[JSON] ()
 api :: Proxy Api
 api = Proxy
 
-messagify :: Message -> DismissiveIO (Maybe Dismissive.Message)
-messagify Message { subject, from, body } = do
+reminderify :: Message -> DismissiveIO (Maybe Reminder)
+reminderify Message { subject, from, body } = do
   maybeSender <- getUser from
   case maybeSender of
     Nothing -> return Nothing
     Just sender -> do
       now <- liftIO getCurrentTime
-      let message = Dismissive.Message (Just subject) body now False (entityKey sender)
-      liftIO (print message)
-      return (Just message)
+      let reminder = Reminder (Just subject) body now False (entityKey sender)
+      liftIO (print reminder)
+      return (Just reminder)
 
 type Dismiss = DismissiveT (EitherT ServantErr IO) :~> EitherT ServantErr IO
 
@@ -41,8 +41,8 @@ dismissiveToEither = do
 
 handleMessage :: Text -> Message -> DismissiveIO ()
 handleMessage "inbound" message = do
-  mmessage <- messagify message
-  maybe (return ()) insertMessage mmessage
+  maybeReminder <- reminderify message
+  maybe (return ()) insertReminder maybeReminder
 handleMessage _ _ = return ()
 
 uncurryEvent :: (Text -> Message -> a) -> MandrillEvent -> a

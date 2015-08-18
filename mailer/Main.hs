@@ -7,14 +7,14 @@ import qualified Data.Configurator as Conf
 import Mailer
 import Dismissive.Types
 
-emailForMessage :: (Entity Message, Entity User) -> LocalEmail
-emailForMessage ( Entity { entityKey = messageId, entityVal = message }
-                , Entity { entityVal = User { userEmail = toEmail } }
-                ) =
+emailForReminder :: (Entity Reminder, Entity User) -> LocalEmail
+emailForReminder ( Entity { entityKey = reminderId, entityVal = reminder }
+                 , Entity { entityVal = User { userEmail = toEmail } }
+                 ) =
   LocalEmail toEmail "Dismissive" "reminder" replyTo subject body
-  where replyTo = Text.intercalate "+" ["snooze", keyShow messageId]
-        subject = fromMaybe "Reminder!" (messageSubject message)
-        body = messageBody message
+  where replyTo = Text.intercalate "+" ["snooze", keyShow reminderId]
+        subject = fromMaybe "Reminder!" (reminderSubject reminder)
+        body = reminderBody reminder
 
 main :: IO ()
 main = do
@@ -25,9 +25,9 @@ main = do
   let mailer = Mailer mandrillKey domain
 
   withDismissiveIO connStr $ do
-    messages <- unsentMessages
-    liftIO $ putStrLn $ mconcat ["sending ", show (length messages), " messages"]
-    for_ messages $ \(message, user) -> do
-      let email = emailForMessage (message, user)
+    reminders <- unsentReminders
+    liftIO $ putStrLn $ mconcat ["sending ", show (length reminders), " reminders"]
+    for_ reminders $ \(reminder, user) -> do
+      let email = emailForReminder (reminder, user)
       runReaderT (sendMail email) mailer
-      markSent (entityKey message)
+      markSent (entityKey reminder)

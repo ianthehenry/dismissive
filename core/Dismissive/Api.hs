@@ -10,8 +10,8 @@ module Dismissive.Api (
   withDismissiveIO,
   getUser,
   markSent,
-  unsentMessages,
-  insertMessage,
+  unsentReminders,
+  insertReminder,
   Entity(..),
   keyShow,
   keyRead
@@ -53,24 +53,24 @@ withDismissiveIO connStr handler =
 getUser :: EmailAddress -> DismissiveIO (Maybe (Entity User))
 getUser email = run (getBy (UniqueEmail email))
 
-unsentMessages :: DismissiveIO [(Entity Message, Entity User)]
-unsentMessages = run $ do
+unsentReminders :: DismissiveIO [(Entity Reminder, Entity User)]
+unsentReminders = run $ do
   now <- liftIO getCurrentTime
-  select $ from $ \(message `InnerJoin` user) -> do
-    on (message ^. MessageUserId ==. user ^. UserId)
-    where_ (not_ $ message ^. MessageSent)
-    where_ (message ^. MessageSendAt <=. val now)
-    return (message, user)
+  select $ from $ \(reminder `InnerJoin` user) -> do
+    on (reminder ^. ReminderUserId ==. user ^. UserId)
+    where_ (not_ $ reminder ^. ReminderSent)
+    where_ (reminder ^. ReminderSendAt <=. val now)
+    return (reminder, user)
 
-markSent :: MessageId -> DismissiveIO ()
-markSent messageId = run $ update $ \message -> do
-  set message [MessageSent =. val True]
-  where_ (message ^. MessageId ==. val messageId)
+markSent :: ReminderId -> DismissiveIO ()
+markSent reminderId = run $ update $ \reminder -> do
+  set reminder [ReminderSent =. val True]
+  where_ (reminder ^. ReminderId ==. val reminderId)
 
 run :: SqlPersistM a -> DismissiveIO a
 run action = do
   pool <- ask
   liftIO $ runSqlPersistMPool action pool
 
-insertMessage :: Message -> DismissiveIO ()
-insertMessage message = (void . run) (insert message)
+insertReminder :: Reminder -> DismissiveIO ()
+insertReminder reminder = (void . run) (insert reminder)

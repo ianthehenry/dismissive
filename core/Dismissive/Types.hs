@@ -2,7 +2,7 @@ module Dismissive.Types (
   User(..),
   Code(..),
   Token,
-  Message(..),
+  Reminder(..),
   EmailAddress
 ) where
 

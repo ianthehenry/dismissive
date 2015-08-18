@@ -4,7 +4,7 @@ CREATE TABLE users (
   email TEXT NOT NULL UNIQUE
 );
 
-CREATE TABLE messages (
+CREATE TABLE reminders (
   id SERIAL PRIMARY KEY NOT NULL,
   subject TEXT,
   body TEXT NOT NULL,
