@@ -19,7 +19,7 @@ library
                , time ==1.5.*
                , text ==1.2.*
 
-  exposed-modules: Dismissive.Types, Dismissive.Api
+  exposed-modules: Dismissive.Types, Dismissive.Api, Dismissive.Internal.Types
 
   default-extensions: OverloadedStrings
                     , NoImplicitPrelude

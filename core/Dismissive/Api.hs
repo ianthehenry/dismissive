@@ -25,7 +25,7 @@ import Control.Monad.IO.Class
 import Control.Monad.Reader
 import Database.Esqueleto
 import Database.Persist.Postgresql (withPostgresqlPool, ConnectionString, ConnectionPool, runSqlPersistMPool)
-import Dismissive.Types
+import Dismissive.Internal.Types
 import Control.Monad.Logger
 import Data.Time.Clock
 
