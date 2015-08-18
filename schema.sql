@@ -6,7 +6,6 @@ CREATE TABLE users (
 
 CREATE TABLE reminders (
   id SERIAL PRIMARY KEY NOT NULL,
-  subject TEXT,
   body TEXT NOT NULL,
   send_at TIMESTAMP NOT NULL,
   sent BOOLEAN NOT NULL,

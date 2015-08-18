@@ -39,7 +39,6 @@ Token sql=tokens
   UniqueToken token
   deriving Show
 Reminder sql=reminders
-  subject Text Maybe
   body Text
   sendAt UTCTime
   sent Bool
