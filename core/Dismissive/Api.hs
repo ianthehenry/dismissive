@@ -28,6 +28,7 @@ import Control.Monad.Reader
 import Database.Esqueleto
 import Database.Persist.Postgresql (withPostgresqlPool, ConnectionString, ConnectionPool, runSqlPersistMPool)
 import Dismissive.Internal.Types
+import Dismissive.Types
 import Control.Monad.Logger
 import Data.Time.Clock
 
@@ -75,8 +76,7 @@ run action = do
   liftIO $ runSqlPersistMPool action pool
 
 data TokenError = TokenNotFound
-                | TokenLacksAppend
-                | TokenLacksRead
+                | TokenLacksPermissions [Permission]
                   deriving (Eq, Show)
 
 liftMaybe :: Monad m => a -> Maybe b -> EitherT a m b
@@ -91,9 +91,9 @@ insertReminder :: Reminder -> DismissiveIO ()
 insertReminder reminder = (void . run) (insert reminder)
 
 addReminder :: Text -> UTCTime -> Text -> DismissiveIO (Either TokenError ())
-addReminder tokenText sendAt text = runEitherT $ do
-  (entityVal -> token) <- liftMaybe TokenNotFound =<< lift (run query)
-  ensure (tokenAppend token) TokenLacksAppend
-  let reminder = Reminder text sendAt False (tokenUserId token)
+addReminder token sendAt text = runEitherT $ do
+  (entityVal -> tokenRow) <- liftMaybe TokenNotFound =<< lift (run query)
+  ensure (tokenRowCreate tokenRow) (TokenLacksPermissions [PermissionCreate])
+  let reminder = Reminder text sendAt False (tokenRowUserId tokenRow)
   lift (insertReminder reminder)
-  where query = getBy (UniqueToken tokenText)
+  where query = getBy (UniqueToken token)

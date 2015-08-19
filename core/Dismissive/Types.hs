@@ -1,9 +1,16 @@
 module Dismissive.Types (
   User(..),
   Code(..),
-  Token,
   Reminder(..),
-  EmailAddress
+  EmailAddress,
+  Permission(..)
 ) where
 
+import BasePrelude
 import Dismissive.Internal.Types
+
+data Permission = PermissionReadAll
+                | PermissionEditAll
+                | PermissionCreate
+                | PermissionEditReminder ReminderId
+                  deriving (Eq, Show)

@@ -31,11 +31,12 @@ Code sql=codes
   userId UserId
   UniqueCode code
   deriving Show
-Token sql=tokens
+TokenRow sql=tokens
   token Text
   read Bool
-  append Bool
+  create Bool
   userId UserId
+  reminderId ReminderId Maybe
   UniqueToken token
   deriving Show
 Reminder sql=reminders
