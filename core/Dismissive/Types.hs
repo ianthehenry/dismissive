@@ -1,6 +1,7 @@
 module Dismissive.Types (
   User(..),
   Code(..),
+  Token,
   Reminder(..),
   EmailAddress,
   Permission(..)

@@ -90,7 +90,7 @@ ensure False err = left err
 insertReminder :: Reminder -> DismissiveIO ()
 insertReminder reminder = (void . run) (insert reminder)
 
-addReminder :: Text -> UTCTime -> Text -> DismissiveIO (Either TokenError ())
+addReminder :: Token -> UTCTime -> Text -> DismissiveIO (Either TokenError ())
 addReminder token sendAt text = runEitherT $ do
   (entityVal -> tokenRow) <- liftMaybe TokenNotFound =<< lift (run query)
   ensure (tokenRowCreate tokenRow) (TokenLacksPermissions [PermissionCreate])

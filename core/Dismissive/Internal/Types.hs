@@ -12,10 +12,12 @@ module Dismissive.Internal.Types where
 
 import BasePrelude hiding (Unique)
 import Data.Text (Text)
+import Data.ByteString (ByteString)
 import Data.Time.Clock (UTCTime)
 import Database.Persist.TH
 
 type EmailAddress = Text
+type Token = ByteString
 
 share [mkPersist sqlSettings] [persistLowerCase|
 User sql=users
@@ -32,7 +34,7 @@ Code sql=codes
   UniqueCode code
   deriving Show
 TokenRow sql=tokens
-  token Text
+  token ByteString
   read Bool
   create Bool
   userId UserId

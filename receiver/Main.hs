@@ -10,6 +10,8 @@ import qualified Data.Configurator as Conf
 import Data.Time.Clock
 import Data.Text (Text)
 import qualified Data.Text as Text
+import qualified Data.Text.Encoding as Text
+import Data.ByteString.Base16 as B16
 import Dismissive.Api
 import Dismissive.Types
 import Network.Wai
@@ -22,8 +24,8 @@ type Api = ReqBody '[FormUrlEncoded] [MandrillEvent] :> Post '[JSON] ()
 api :: Proxy Api
 api = Proxy
 
-extractToken :: Message -> Text
-extractToken = head . Text.split (== '@') . messageTo
+extractToken :: Message -> Token
+extractToken = fst . B16.decode . Text.encodeUtf8 . head . Text.split (== '@') . messageTo
 
 type Dismiss = DismissiveT (EitherT ServantErr IO) :~> EitherT ServantErr IO
 
