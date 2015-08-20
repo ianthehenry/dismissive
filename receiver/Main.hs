@@ -5,6 +5,7 @@
 import BasePrelude
 import Control.Monad.IO.Class
 import Control.Monad.Reader
+import Control.Monad.State
 import Control.Monad.Trans.Either
 import qualified Data.Configurator as Conf
 import Data.Time.Clock
@@ -32,7 +33,8 @@ type Dismiss = DismissiveT (EitherT ServantErr IO) :~> EitherT ServantErr IO
 dismissiveToEither :: Monad m => DismissiveT m Dismiss
 dismissiveToEither = do
   pool <- ask
-  return $ Nat (`runDismissiveT` pool)
+  rng <- get
+  return $ Nat (runDismissiveT rng pool)
 
 handleMessage :: Text -> Message -> DismissiveIO ()
 handleMessage "inbound" message = do
