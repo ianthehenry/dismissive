@@ -19,6 +19,7 @@ executable mailer
                , text ==1.2.*
                , dismissive-core
                , configurator
+               , base16-bytestring
 
   default-extensions: OverloadedStrings
                     , NoImplicitPrelude
