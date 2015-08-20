@@ -14,6 +14,7 @@ import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
 import Data.ByteString.Base16 as B16
 import Dismissive.Api
+import Dismissive.Servant
 import Dismissive.Types
 import Network.Wai
 import Network.Wai.Handler.Warp
@@ -27,14 +28,6 @@ api = Proxy
 
 extractToken :: Message -> Token
 extractToken = fst . B16.decode . Text.encodeUtf8 . head . Text.split (== '@') . messageTo
-
-type Dismiss = DismissiveT (EitherT ServantErr IO) :~> EitherT ServantErr IO
-
-dismissiveToEither :: Monad m => DismissiveT m Dismiss
-dismissiveToEither = do
-  pool <- ask
-  rng <- get
-  return $ Nat (runDismissiveT rng pool)
 
 handleMessage :: Text -> Message -> DismissiveIO ()
 handleMessage "inbound" message = do
@@ -50,10 +43,10 @@ server :: ServerT Api (DismissiveT (EitherT ServantErr IO))
 server events = for_ events (uncurryEvent handleMessage)
 
 server' :: DismissiveIO (Server Api)
-server' = flip enter server <$> dismissiveToEither
+server' = flip enter server <$> getDismiss
 
 application :: DismissiveIO Application
-application = serve api <$> server'
+application = makeApplication api server'
 
 main :: IO ()
 main = do
