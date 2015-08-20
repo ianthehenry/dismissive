@@ -112,7 +112,7 @@ lacking permissions tokenRow = filter (not . hasPermission) permissions
     reminderId = tokenRowReminderId tokenRow
     canRead = tokenRowRead tokenRow
     canCreate = tokenRowCreate tokenRow
-    canEdit = False
+    canEdit = tokenRowEdit tokenRow
 
 authorized :: [Permission] -> Token -> (TokenRow -> DismissiveIO a) -> DismissiveIO (Either TokenError a)
 authorized permissions token cont = runEitherT $ do
@@ -169,8 +169,8 @@ createToken :: [Permission] -> UserId -> DismissiveIO (Either TokenCreateError T
 createToken permissions userId = runEitherT $ do
   permSet <- liftEither (const InvalidPermissionSet) (fromPerms permissions)
   token <- liftEither (const RandomnessProblem) =<< lift (secureRandom 16)
-  let PermSet { permReminder, permRead, permCreate } = permSet
-  let row = TokenRow token permRead permCreate userId permReminder
+  let PermSet { permReminder, permRead, permCreate, permEdit } = permSet
+  let row = TokenRow token permRead permCreate permEdit userId permReminder
   lift (insertToken row)
   return token
 

@@ -37,6 +37,7 @@ TokenRow sql=tokens
   token ByteString
   read Bool
   create Bool
+  edit Bool
   userId UserId
   reminderId ReminderId Maybe
   UniqueToken token

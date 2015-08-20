@@ -17,6 +17,7 @@ CREATE TABLE tokens (
   token BYTEA UNIQUE NOT NULL,
   read BOOLEAN NOT NULL,
   "create" BOOLEAN NOT NULL,
+  edit BOOLEAN NOT NULL,
   user_id INTEGER NOT NULL REFERENCES users(id),
   reminder_id INTEGER REFERENCES reminders(id)
 );
