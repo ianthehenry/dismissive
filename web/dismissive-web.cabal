@@ -24,5 +24,6 @@ executable dismissive-web
 
   default-extensions: NoImplicitPrelude
                     , OverloadedStrings
+                    , TupleSections
 
   default-language: Haskell2010

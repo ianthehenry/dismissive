@@ -32,16 +32,24 @@ api = Proxy
 
 data Signup = Signup
 
-layout :: Monad m => HtmlT m () -> HtmlT m ()
-layout inner = html_ (head_ head <> body_ inner)
+layout :: Monad m => Partial m -> HtmlT m ()
+layout (stylesheets, scripts, inner) = html_ (head_ head <> body_ inner)
   where
-    head = title_ "Dismissive" <> css_ "/static/main.css"
+    head = do
+      title_ "Dismissive"
+      traverse_ css_ ("/static/main.css":stylesheets)
+      traverse_ js_ scripts
     css_ path = link_ [type_ "text/css", rel_ "stylesheet", href_ path]
+    js_ :: Monad m => Text -> HtmlT m ()
+    js_ path = script_ [type_ "text/javascript", src_ path] ("" :: Text)
+
+simplePage :: HtmlT m () -> Partial m
+simplePage = ([], [], )
 
 dynamicServer :: ServerT DynamicApi (DismissiveT (EitherT ServantErr IO))
 dynamicServer = handleLandingPage :<|> handleAuth
   where
-    handleAuth (Login username email) = return (layout $ div_ $ toHtml $ "okay!" <> email)
+    handleAuth (Login username email) = return (layout $ simplePage $ div_ $ toHtml $ "okay!" <> email)
     handleLandingPage = return (layout signupPage)
 
 server :: DismissiveIO (Server Api)
