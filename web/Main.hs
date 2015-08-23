@@ -14,6 +14,7 @@ import Network.Wai.Handler.Warp
 import Servant
 import Servant.HTML.Lucid
 import Lucid
+import Landing
 
 data Login = Login Text Text
 
@@ -37,16 +38,11 @@ layout inner = html_ (head_ head <> body_ inner)
     head = title_ "Dismissive" <> css_ "/static/main.css"
     css_ path = link_ [type_ "text/css", rel_ "stylesheet", href_ path]
 
-staticSignupPage :: Html ()
-staticSignupPage = layout $ do
-  h1_ "Dismissive"
-  div_ "hello yes this is dismissive"
-
 dynamicServer :: ServerT DynamicApi (DismissiveT (EitherT ServantErr IO))
 dynamicServer = handleLandingPage :<|> handleAuth
   where
     handleAuth (Login username email) = return (layout $ div_ $ toHtml $ "okay!" <> email)
-    handleLandingPage = return staticSignupPage
+    handleLandingPage = return (layout signupPage)
 
 server :: DismissiveIO (Server Api)
 server = do
