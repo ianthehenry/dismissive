@@ -7,24 +7,55 @@ import Control.Monad.IO.Class
 import Control.Monad.Trans.Either
 import qualified Data.Configurator as Conf
 import Dismissive.Api
+import Data.Text (Text)
 import Dismissive.Servant
 import Network.Wai
 import Network.Wai.Handler.Warp
 import Servant
+import Servant.HTML.Lucid
+import Lucid
 
-type Api = Get '[JSON] ()
+data Login = Login Text Text
+
+instance FromFormUrlEncoded Login where
+  fromFormUrlEncoded [("username", u), ("email", e)] = Right (Login u e)
+  fromFormUrlEncoded _ = Left "that doesn't look right"
+
+type DynamicApi = Get '[HTML] (Html ())
+             :<|> "auth" :> ReqBody '[FormUrlEncoded] Login :> Post '[HTML] (Html ())
+type StaticApi = "static" :> Raw
+type Api = DynamicApi :<|> StaticApi
 
 api :: Proxy Api
 api = Proxy
 
-server :: ServerT Api (DismissiveT (EitherT ServantErr IO))
-server = return ()
+data Signup = Signup
 
-server' :: DismissiveIO (Server Api)
-server' = flip enter server <$> getDismiss
+layout :: Monad m => HtmlT m () -> HtmlT m ()
+layout inner = html_ (head_ head <> body_ inner)
+  where
+    head = title_ "Dismissive" <> css_ "/static/main.css"
+    css_ path = link_ [type_ "text/css", rel_ "stylesheet", href_ path]
+
+staticSignupPage :: Html ()
+staticSignupPage = layout $ do
+  h1_ "Dismissive"
+  div_ "hello yes this is dismissive"
+
+dynamicServer :: ServerT DynamicApi (DismissiveT (EitherT ServantErr IO))
+dynamicServer = handleLandingPage :<|> handleAuth
+  where
+    handleAuth (Login username email) = return (layout $ div_ $ toHtml $ "okay!" <> email)
+    handleLandingPage = return staticSignupPage
+
+server :: DismissiveIO (Server Api)
+server = do
+  dismiss <- getDismiss
+  let d = enter dismiss dynamicServer
+  return (d :<|> serveDirectory "./static/")
 
 application :: DismissiveIO Application
-application = makeApplication api server'
+application = makeApplication api server
 
 main :: IO ()
 main = do

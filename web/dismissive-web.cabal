@@ -20,6 +20,7 @@ executable dismissive-web
                , dismissive-core
                , dismissive-servant
                , configurator
+               , lucid, servant-lucid
 
   default-extensions: NoImplicitPrelude
                     , OverloadedStrings
