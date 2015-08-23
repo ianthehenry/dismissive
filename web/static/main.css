@@ -1,0 +1,138 @@
+body {
+  width: 800px;
+  margin: 20px auto;
+  font-family: "Helvetica Neue";
+}
+
+.tagline {
+  text-align: center;
+}
+
+html {
+  background-color: #eee;
+  color: #444;
+}
+
+h1 {
+  text-align: center;
+}
+
+.window {
+  width: 500px;
+  height: 310px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+  border: solid 0.5px #c1c1bd;
+  margin: auto;
+  font-size: 13px;
+  -webkit-user-select: none;
+  cursor: default;
+  background-color: #fff;
+  color: #000;
+}
+
+.window-bar {
+  background: linear-gradient(to bottom, #ebebeb 0%, #d4d4d4 100%);
+  height: 20px;
+  line-height: 20px;
+  color: #5a575a;
+  border-top: solid 0.5px #fafafa;
+  border-bottom: solid 0.5px #afaeaf;
+  text-align: center;
+}
+
+.label {
+  color: #808080;
+  margin-right: 4px;
+}
+
+.token {
+  background-color: #d3e7fa;
+  border-radius: 3px;
+  padding: 2px 4px;
+}
+
+.header {
+  border-bottom: solid 1px #e6e6e6;
+  padding: 0 0 0 24px;
+}
+
+.header > div {
+  line-height: 32px;
+}
+
+.header > div + div {
+  border-top: solid 1px #e6e6e6;
+}
+
+.body {
+  padding: 24px;
+  font: Helvetica 12px;
+}
+
+svg {
+  margin-left: 2px;
+  display: inline;
+  width: 6px;
+  height: 5px;
+  fill: none;
+  stroke: black;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  stroke-width: 1.2px;
+  vertical-align: middle;
+}
+
+form {
+  width: 500px;
+  margin: auto;
+  margin-top: 1em;
+}
+
+input {
+  font-size: 120%;
+  outline: none;
+  padding: .5em;
+}
+
+input[type=email] {
+  width: 450px;
+  border-radius: 4px 0 0 4px;
+  border: solid 1px #c1c1bd;
+}
+
+input[type]:focus {
+  border-color: #888;
+}
+
+input[type=submit] {
+  width: 50px;
+  border-radius: 0 4px 4px 0;
+  color: #c1c1bd;
+  border: solid 1px #c1c1bd;
+  border-left: none;
+  font-weight: bold;
+  background-color: #fff;
+  cursor: pointer;
+}
+
+input[type=submit]:hover {
+  background-color: #f1f1ed;
+}
+
+input[type=submit]:active {
+  background-color: #b1b1ad;
+}
+
+.cursor {
+  margin-left: 1px;
+  border-left: solid 1px #000;
+  -webkit-animation: blink 1s steps(2, start) infinite;
+}
+
+@-webkit-keyframes blink {
+  to {
+    visibility: hidden;
+  }
+}
