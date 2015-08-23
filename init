@@ -18,5 +18,8 @@ for service in receiver mailer servant; do
   cd -
 done
 
-cd receiver
-cabal sandbox add-source ../servant
+for service in receiver web; do
+  cd "$service"
+  cabal sandbox add-source ../servant
+  cd -
+done
