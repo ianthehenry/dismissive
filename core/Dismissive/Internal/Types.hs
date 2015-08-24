@@ -21,10 +21,8 @@ type Token = ByteString
 
 share [mkPersist sqlSettings] [persistLowerCase|
 User sql=users
-  name Text
   email EmailAddress
   UniqueEmail email
-  UniqueName name
   deriving Show
 Code sql=codes
   code Text

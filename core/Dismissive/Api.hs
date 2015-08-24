@@ -8,6 +8,7 @@ module Dismissive.Api (
   DismissiveIO,
   runDismissiveT,
   withDismissiveIO,
+  createAccount,
   getUser,
   markSent,
   unsentReminders,
@@ -15,11 +16,12 @@ module Dismissive.Api (
   createToken,
   Entity(..),
   TokenError(..),
+  AccountCreateError(..),
   keyShow,
   keyRead
 ) where
 
-import BasePrelude hiding (insert, on, left)
+import BasePrelude hiding (insert, insertBy, on, left)
 import Crypto.Random.DRBG
 import Data.Text (Text)
 import qualified Data.Text as Text
@@ -126,6 +128,17 @@ addReminder :: Token -> UTCTime -> Text -> DismissiveIO (Either TokenError ())
 addReminder token sendAt text = authorized [PermissionCreate] token $ \tokenRow -> do
   let reminder = Reminder text sendAt False (tokenRowUserId tokenRow)
   insertReminder reminder
+
+data AccountCreateError = EmailAlreadyExists
+                        | TokenNonsense
+                          deriving (Eq, Show)
+
+createAccount :: EmailAddress -> DismissiveIO (Either AccountCreateError Token)
+createAccount email = runEitherT $ do
+  maybeDup <- (lift . run . insertBy) (User email)
+  case maybeDup of
+    Left  acct -> left EmailAlreadyExists
+    Right userId -> liftEither (const TokenNonsense) =<< lift (createToken [PermissionCreate] userId)
 
 data PermSet =
   PermSet { permEdit :: Bool
