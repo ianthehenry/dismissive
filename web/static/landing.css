@@ -7,7 +7,6 @@ h1 {
 }
 
 .window {
-  width: 500px;
   height: 310px;
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
   border-radius: 4px;
@@ -75,7 +74,6 @@ svg {
 }
 
 form {
-  width: 500px;
   margin: auto;
   margin-top: 1em;
 }

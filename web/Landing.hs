@@ -30,8 +30,8 @@ signupPage = (["/static/landing.css"], ["/static/landing.js"], ) $ do
         field "Cc:" ""
         field "Subject:" (span_ [class_ "content"] "")
       div_ [class_ "body"] (span_ [class_ "cursor"] "")
+  p_ "Log in or sign up with your email address:"
   form_ [method_ "POST", action_ "/auth"] $ do
-    p_ "Log in or sign up with your email address:"
     input_ [name_ "username", style_ "display: none", type_ "text"]
     input_ [placeholder_ "foo@example.com", name_ "email", type_ "email"]
     input_ [type_ "submit", value_ "→"]
