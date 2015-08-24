@@ -50,6 +50,10 @@ newtype DismissiveT m a =
                          , MonadIO, MonadReader ConnectionPool
                          , MonadState HashDRBG
                          )
+
+instance MonadTrans DismissiveT where
+  lift = DismissiveT . lift . lift
+
 type DismissiveIO a = forall m. MonadIO m => DismissiveT m a
 type Dismissive = DismissiveT Identity
 
