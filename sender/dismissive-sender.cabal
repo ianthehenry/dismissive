@@ -1,4 +1,4 @@
-name:                dismissive-mailer
+name:                dismissive-sender
 version:             0.1.0.0
 license:             MIT
 license-file:        ../LICENSE
@@ -7,7 +7,7 @@ maintainer:          ianthehenry@gmail.com
 build-type:          Simple
 cabal-version:       >=1.10
 
-executable mailer
+executable sender
   main-is: Main.hs
 
   build-depends: base <5.0, base-prelude

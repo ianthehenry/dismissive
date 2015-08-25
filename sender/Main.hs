@@ -25,7 +25,7 @@ liftEither _ = left ()
 
 main :: IO ()
 main = do
-  conf <- Conf.load [Conf.Required "mailer.conf", Conf.Optional "shared.conf"]
+  conf <- Conf.load [Conf.Required "sender.conf", Conf.Optional "shared.conf"]
   connStr <- Conf.require conf "conn"
   mandrillKey <- Conf.require conf "mandrill-key"
   domain <- Conf.require conf "mail-domain"

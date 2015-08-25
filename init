@@ -9,7 +9,7 @@ cd -
 
 mkdir ./.cabal-sandbox
 
-for service in receiver mailer servant; do
+for service in receiver sender servant; do
   cd "$service"
   cabal sandbox init --sandbox ../.cabal-sandbox
   cabal sandbox add-source ../core
