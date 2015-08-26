@@ -1,6 +1,11 @@
 {-# LANGUAGE FlexibleContexts #-}
 
-module Mailer where
+module Dismissive.Mailer (
+  Mailer(..),
+  LocalEmail(..),
+  SendError(..),
+  sendMail
+) where
 
 import BasePrelude hiding (left)
 import Control.Lens hiding ((.=))
@@ -10,8 +15,9 @@ import Control.Monad.Trans.Either
 import Data.Aeson
 import Data.ByteString.Lazy (ByteString)
 import Data.Text (Text)
-import Dismissive.Types (EmailAddress)
 import Network.Wreq
+
+type EmailAddress = Text
 
 data Mailer =
   Mailer { mailerKey :: Text

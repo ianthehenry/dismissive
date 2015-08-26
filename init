@@ -2,10 +2,12 @@
 
 set -e
 
-cd core
-cabal sandbox init
-cabal install --only-dependencies -j
-cd -
+for lib in core mailer; do
+  cd "$lib"
+  cabal sandbox init
+  cabal install --only-dependencies -j
+  cd -
+done
 
 mkdir ./.cabal-sandbox
 
@@ -15,6 +17,12 @@ for service in receiver sender servant; do
   cabal sandbox add-source ../core
   ln -s ../conf shared.conf
   cabal install --only-dependencies -j
+  cd -
+done
+
+for service in sender; do
+  cd "$service"
+  cabal sandbox add-source ../mailer
   cd -
 done
 

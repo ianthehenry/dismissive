@@ -7,7 +7,7 @@ import qualified Data.Text as Text
 import Control.Monad.Reader
 import Dismissive.Api
 import qualified Data.Configurator as Conf
-import Mailer
+import Dismissive.Mailer
 import Dismissive.Types
 
 emailForReminder :: (Entity Reminder, Entity User) -> Token -> LocalEmail

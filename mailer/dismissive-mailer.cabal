@@ -1,4 +1,4 @@
-name:                dismissive-sender
+name:                dismissive-mailer
 version:             0.1.0.0
 license:             MIT
 license-file:        ../LICENSE
@@ -7,19 +7,16 @@ maintainer:          ianthehenry@gmail.com
 build-type:          Simple
 cabal-version:       >=1.10
 
-executable sender
-  main-is: Main.hs
+library
+  exposed-modules: Dismissive.Mailer
 
   build-depends: base <5.0, base-prelude
+               , wreq, lens, aeson
                , bytestring
                , either
                , mtl ==2.2.*, transformers
                , time ==1.5.*
                , text ==1.2.*
-               , dismissive-core
-               , dismissive-mailer
-               , configurator
-               , base16-bytestring
 
   default-extensions: OverloadedStrings
                     , NoImplicitPrelude
