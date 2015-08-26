@@ -29,7 +29,7 @@ main = do
   connStr <- Conf.require conf "conn"
   mandrillKey <- Conf.require conf "mandrill-key"
   domain <- Conf.require conf "mail-domain"
-  let mailer = Mailer mandrillKey domain
+  let mailer = MailerConf mandrillKey domain
 
   withDismissiveIO connStr $ do
     reminders <- unsentReminders
@@ -39,5 +39,5 @@ main = do
       let userId = entityKey user
       snoozeToken <- liftEither =<< lift (createToken [PermissionEdit reminderId] userId)
       let email = emailForReminder (reminder, user) snoozeToken
-      liftEither =<< runReaderT (sendMail email) mailer
+      liftEither =<< runMailerT mailer (sendMail email)
       lift $ markSent (entityKey reminder)

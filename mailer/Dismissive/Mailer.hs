@@ -1,9 +1,12 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Dismissive.Mailer (
-  Mailer(..),
+  MailerConf(..),
   LocalEmail(..),
   SendError(..),
+  MailerT,
+  runMailerT,
   sendMail
 ) where
 
@@ -19,10 +22,22 @@ import Network.Wreq
 
 type EmailAddress = Text
 
-data Mailer =
-  Mailer { mailerKey :: Text
-         , mailerDomain :: Text
-         }
+data MailerConf =
+  MailerConf { mailerKey :: Text
+             , mailerDomain :: Text
+             }
+
+newtype MailerT m a =
+  MailerT { unMailerT :: ReaderT MailerConf m a
+          } deriving ( Functor, Applicative, Monad
+                     , MonadIO, MonadReader MailerConf
+                     )
+
+runMailerT :: Monad m => MailerConf -> MailerT m a -> m a
+runMailerT conf mailer = runReaderT (unMailerT mailer) conf
+
+instance MonadTrans MailerT where
+  lift = MailerT . lift
 
 data Email =
   Email { emailTo :: EmailAddress
@@ -108,16 +123,16 @@ ensure :: Monad m => Bool -> a -> EitherT a m ()
 ensure True  _   = return ()
 ensure False err = left err
 
-mandrill :: (MonadIO m, MonadReader Mailer m) => Email -> m (Response ByteString)
+mandrill :: (MonadIO m) => Email -> MailerT m (Response ByteString)
 mandrill email = do
   key <- asks mailerKey
   let body = object ["message" .= email, "key" .= key]
   liftIO $ post "https://mandrillapp.com/api/1.0/messages/send" (toJSON body)
 
-sendMail :: MonadIO m => LocalEmail -> ReaderT Mailer m (Either SendError ())
+sendMail :: MonadIO m => LocalEmail -> MailerT m (Either SendError ())
 sendMail localEmail = runEitherT $ do
   domain <- asks mailerDomain
-  res <- mandrill (globalize domain localEmail)
+  res <- lift $ mandrill (globalize domain localEmail)
   let status = res ^. responseStatus.statusCode
   ensure (status == 200) (UnrecognizedStatusCode status)
   let maybeResponses = res ^. responseJSON
