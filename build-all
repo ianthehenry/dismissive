@@ -2,6 +2,8 @@
 
 set -e
 
-for module in core receiver mailer; do
+modules=$(find . -mindepth 1 -maxdepth 1 -type d -not -name '.*')
+
+for module in $modules; do
   ./build "$module"
 done
