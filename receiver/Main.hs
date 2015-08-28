@@ -6,6 +6,7 @@ import BasePrelude
 import Control.Monad.IO.Class
 import Control.Monad.Reader
 import Control.Monad.State
+import Control.Monad.Logger
 import Control.Monad.Trans.Either
 import qualified Data.Configurator as Conf
 import Data.Time.Clock
@@ -39,14 +40,14 @@ handleMessage _ _ = return ()
 uncurryEvent :: (Text -> Message -> a) -> MandrillEvent -> a
 uncurryEvent f MandrillEvent { event, msg } = f event msg
 
-server :: ServerT Api (DismissiveT (EitherT ServantErr IO))
+server :: ServerT Api (DismissiveT (LoggingT (EitherT ServantErr IO)))
 server events = for_ events (uncurryEvent handleMessage)
 
-server' :: DismissiveIO (Server Api)
-server' = flip enter server <$> getDismiss
+server' :: ConnectionString -> Server Api
+server' connStr = enter (getDismiss connStr) server
 
-application :: DismissiveIO Application
-application = makeApplication api server'
+application :: ConnectionString -> Application
+application connStr = serve api (server' connStr)
 
 main :: IO ()
 main = do
@@ -55,6 +56,4 @@ main = do
   connStr <- Conf.require conf "conn"
 
   putStrLn ("listening on port " <> show port)
-  withDismissiveIO connStr $ do
-    app <- application
-    liftIO (run port app)
+  run port (application connStr)
