@@ -19,6 +19,8 @@ library
                , time ==1.5.*
                , text ==1.2.*
                , bytestring
+               , monad-logger
+               , monad-control
                , either
                , DRBG
 

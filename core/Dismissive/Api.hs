@@ -3,11 +3,11 @@
 {-# LANGUAGE FlexibleContexts #-}
 
 module Dismissive.Api (
-  Dismissive,
   DismissiveT,
   DismissiveIO,
-  runDismissiveT,
+  ConnectionString,
   withDismissiveIO,
+  execDismissive,
   createAccount,
   getUser,
   markSent,
@@ -29,8 +29,10 @@ import Data.Functor.Identity
 import Data.ByteString (ByteString)
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Either
+import Control.Monad.Trans.Control (MonadBaseControl)
 import Control.Monad.Reader
 import Control.Monad.State
+import Control.Monad.Logger (MonadLogger)
 import Database.Esqueleto hiding (isNothing, get)
 import Database.Persist.Postgresql (withPostgresqlPool, ConnectionString, ConnectionPool, runSqlPersistMPool)
 import Dismissive.Internal.Types
@@ -45,31 +47,34 @@ keyRead :: ToBackendKey SqlBackend r => Text -> Key r
 keyRead = toSqlKey . read . Text.unpack
 
 newtype DismissiveT m a =
-  DismissiveT { unDismissiveT :: StateT HashDRBG (ReaderT ConnectionPool m) a
+  DismissiveT { unDismissiveT :: StateT HashDRBG (SqlPersistT m) a
               } deriving ( Functor, Applicative, Monad
-                         , MonadIO, MonadReader ConnectionPool
-                         , MonadState HashDRBG
+                         , MonadIO, MonadState HashDRBG
                          )
 
 instance MonadTrans DismissiveT where
   lift = DismissiveT . lift . lift
 
 type DismissiveIO a = forall m. MonadIO m => DismissiveT m a
-type Dismissive = DismissiveT Identity
 
-runDismissiveT :: Monad m => HashDRBG -> ConnectionPool -> DismissiveT m a -> m a
-runDismissiveT rng pool d = runReaderT (evalStateT (unDismissiveT d) rng) pool
+withDismissiveIO :: ConnectionString -> DismissiveIO a -> IO a
+withDismissiveIO connStr action = do
+  runStderrLoggingT $ (execDismissive connStr action)
 
-withDismissiveIO :: ConnectionString -> DismissiveIO () -> IO ()
-withDismissiveIO connStr handler = do
-  rng <- newGenIO :: IO HashDRBG
-  runStderrLoggingT $ withPostgresqlPool connStr 10 (\pool -> runDismissiveT rng pool handler)
+execDismissive :: (MonadIO m, MonadBaseControl IO m, MonadLogger m)
+               => ConnectionString
+               -> DismissiveT m b
+               -> m b
+execDismissive connStr action = do
+  rng <- liftIO (newGenIO :: IO HashDRBG)
+  let sqlPart = evalStateT (unDismissiveT action) rng
+  withPostgresqlPool connStr 10 (runSqlPool sqlPart)
 
 getUser :: EmailAddress -> DismissiveIO (Maybe (Entity User))
-getUser email = run (getBy (UniqueEmail email))
+getUser email = liftQuery (getBy (UniqueEmail email))
 
 unsentReminders :: DismissiveIO [(Entity Reminder, Entity User)]
-unsentReminders = run $ do
+unsentReminders = liftQuery $ do
   now <- liftIO getCurrentTime
   select $ from $ \(reminder `InnerJoin` user) -> do
     on (reminder ^. ReminderUserId ==. user ^. UserId)
@@ -77,15 +82,13 @@ unsentReminders = run $ do
     where_ (reminder ^. ReminderSendAt <=. val now)
     return (reminder, user)
 
+liftQuery :: Monad m => SqlPersistT m a -> DismissiveT m a
+liftQuery = DismissiveT . lift
+
 markSent :: ReminderId -> DismissiveIO ()
-markSent reminderId = run $ update $ \reminder -> do
+markSent reminderId = liftQuery $ update $ \reminder -> do
   set reminder [ReminderSent =. val True]
   where_ (reminder ^. ReminderId ==. val reminderId)
-
-run :: SqlPersistM a -> DismissiveIO a
-run action = do
-  pool <- ask
-  liftIO $ runSqlPersistMPool action pool
 
 data TokenError = TokenNotFound
                 | TokenLacksPermissions [Permission]
@@ -100,7 +103,7 @@ ensure True  _   = return ()
 ensure False err = left err
 
 insertReminder :: Reminder -> DismissiveIO ()
-insertReminder reminder = (void . run) (insert reminder)
+insertReminder reminder = (void . liftQuery) (insert reminder)
 
 -- Note: this does not attempt to do any checking
 -- based on user id. That is to say, this only
@@ -122,11 +125,11 @@ lacking permissions tokenRow = filter (not . hasPermission) permissions
 
 authorized :: [Permission] -> Token -> (TokenRow -> DismissiveIO a) -> DismissiveIO (Either TokenError a)
 authorized permissions token cont = runEitherT $ do
-  (entityVal -> tokenRow) <- liftMaybe TokenNotFound =<< lift (run query)
+  (entityVal -> tokenRow) <- liftMaybe TokenNotFound =<< lift query
   let permissionsLacking = lacking permissions tokenRow
   ensure (null permissionsLacking) (TokenLacksPermissions permissions)
   lift (cont tokenRow)
-  where query = getBy (UniqueToken token)
+  where query = liftQuery $ getBy (UniqueToken token)
 
 addReminder :: Token -> UTCTime -> Text -> DismissiveIO (Either TokenError ())
 addReminder token sendAt text = authorized [PermissionCreate] token $ \tokenRow -> do
@@ -139,7 +142,7 @@ data AccountCreateError = EmailAlreadyExists
 
 createAccount :: EmailAddress -> DismissiveIO (Either AccountCreateError Token)
 createAccount email = runEitherT $ do
-  maybeDup <- (lift . run . insertBy) (User email)
+  maybeDup <- (lift . liftQuery . insertBy) (User email)
   case maybeDup of
     Left  acct -> left EmailAlreadyExists
     Right userId -> liftEither (const TokenNonsense) =<< lift (createToken [PermissionCreate] userId)
@@ -192,4 +195,4 @@ createToken permissions userId = runEitherT $ do
   return token
 
 insertToken :: TokenRow -> DismissiveIO (Key TokenRow)
-insertToken = run . insert
+insertToken = liftQuery . insert
