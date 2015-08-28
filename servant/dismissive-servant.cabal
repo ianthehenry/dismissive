@@ -11,6 +11,7 @@ library
   build-depends: base <5.0, base-prelude
                , servant-server, wai, either
                , mtl, transformers
+               , monad-logger
                , dismissive-core
 
   exposed-modules: Dismissive.Servant
