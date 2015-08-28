@@ -17,6 +17,7 @@ executable dismissive-web
                , time
                , bytestring
                , mtl, transformers
+               , monad-logger
                , dismissive-core
                , dismissive-servant
                , configurator

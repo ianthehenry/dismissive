@@ -5,6 +5,7 @@
 import BasePrelude hiding (left)
 import Control.Monad.IO.Class
 import Control.Monad.Trans
+import Control.Monad.Logger
 import Control.Monad.Trans.Either
 import qualified Data.Configurator as Conf
 import Dismissive.Api
@@ -61,26 +62,24 @@ sendInitialEmail email token = liftIO $ do
   print token
   print "done"
 
-dynamicServer :: ServerT DynamicApi (DismissiveT (EitherT ServantErr IO))
+dynamicServer :: ServerT DynamicApi (DismissiveT (LoggingT (EitherT ServantErr IO)))
 dynamicServer = handleLandingPage :<|> handleAuth
   where
     handleAuth (Login "" email) = do
       createAccount email >>= \case
         Left EmailAlreadyExists -> return () -- maybe send an email here too, baby
-        Left TokenNonsense -> lift (left err500)
+        Left TokenNonsense -> (lift . lift) (left err500)
         Right token -> sendInitialEmail email token -- send an email, baby
       return $ layout (emailConfirm email)
     handleAuth _ = (return . layout . simplePage . div_) "Alright! Account successfully created."
     handleLandingPage = return (layout signupPage)
 
-server :: DismissiveIO (Server Api)
-server = do
-  dismiss <- getDismiss
-  let d = enter dismiss dynamicServer
-  return (d :<|> serveDirectory "./static/")
+server :: ConnectionString -> Server Api
+server connStr = d :<|> serveDirectory "./static/"
+  where d = enter (getDismiss connStr) dynamicServer
 
-application :: DismissiveIO Application
-application = makeApplication api server
+application :: ConnectionString -> Application
+application connStr = serve api (server connStr)
 
 main :: IO ()
 main = do
@@ -89,6 +88,4 @@ main = do
   connStr <- Conf.require conf "conn"
 
   putStrLn ("listening on port " <> show port)
-  withDismissiveIO connStr $ do
-    app <- application
-    liftIO (run port app)
+  run port (application connStr)
