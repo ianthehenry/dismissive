@@ -20,6 +20,7 @@ executable sender
                , dismissive-mailer
                , configurator
                , base16-bytestring
+               , monad-logger
 
   default-extensions: OverloadedStrings
                     , NoImplicitPrelude

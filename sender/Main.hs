@@ -2,6 +2,7 @@ import BasePrelude hiding (left)
 import qualified Data.ByteString.Base16 as B16
 import Data.Text (Text)
 import Control.Monad.Trans.Either
+import Control.Monad.Logger
 import qualified Data.Text.Encoding as Text
 import qualified Data.Text as Text
 import Control.Monad.Reader
@@ -31,7 +32,7 @@ main = do
   domain <- Conf.require conf "mail-domain"
   let mailer = MailerConf mandrillKey domain
 
-  withDismissiveIO connStr $ do
+  runStderrLoggingT $ withDismissiveIO connStr $ \runDismissive -> runDismissive $ do
     reminders <- unsentReminders
     liftIO $ putStrLn $ mconcat ["sending ", show (length reminders), " reminders"]
     for_ reminders $ \(reminder, user) -> runEitherT $ do
