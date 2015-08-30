@@ -17,6 +17,7 @@ import Data.ByteString.Base16 as B16
 import Dismissive.Api
 import Dismissive.Servant
 import Dismissive.Types
+import Dismissive.Mailer
 import Network.Wai
 import Network.Wai.Handler.Warp
 import Servant
@@ -40,7 +41,7 @@ handleMessage _ _ = return ()
 uncurryEvent :: (Text -> Message -> a) -> MandrillEvent -> a
 uncurryEvent f MandrillEvent { event, msg } = f event msg
 
-server :: ServerT Api (DismissiveT (EitherT ServantErr IO))
+server :: ServerT Api (DismissiveT (MailerT (EitherT ServantErr IO)))
 server events = for_ events (uncurryEvent handleMessage)
 
 server' :: Dismiss -> Server Api
@@ -51,9 +52,11 @@ main = do
   conf <- Conf.load [Conf.Required "receiver.conf", Conf.Optional "shared.conf"]
   port <- Conf.require conf "port"
   connStr <- Conf.require conf "conn"
+  mailer <- MailerConf <$> Conf.require conf "mandrill-key"
+                       <*> Conf.require conf "mail-domain"
 
   putStrLn ("listening on port " <> show port)
 
-  runStderrLoggingT $ getDismiss connStr $ \nat ->
+  runStderrLoggingT $ getDismiss connStr mailer $ \nat ->
     let application = serve api (server' nat)
      in liftIO (run port application)

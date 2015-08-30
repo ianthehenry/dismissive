@@ -20,6 +20,7 @@ executable dismissive-receiver
                , monad-logger
                , dismissive-core
                , dismissive-servant
+               , dismissive-mailer
                , configurator
                , base16-bytestring
 
