@@ -62,24 +62,21 @@ sendInitialEmail email token = liftIO $ do
   print token
   print "done"
 
-dynamicServer :: ServerT DynamicApi (DismissiveT (LoggingT (EitherT ServantErr IO)))
+dynamicServer :: ServerT DynamicApi (DismissiveT (EitherT ServantErr IO))
 dynamicServer = handleLandingPage :<|> handleAuth
   where
     handleAuth (Login "" email) = do
       createAccount email >>= \case
         Left EmailAlreadyExists -> return () -- maybe send an email here too, baby
-        Left TokenNonsense -> (lift . lift) (left err500)
+        Left TokenNonsense -> lift (left err500)
         Right token -> sendInitialEmail email token -- send an email, baby
       return $ layout (emailConfirm email)
     handleAuth _ = (return . layout . simplePage . div_) "Alright! Account successfully created."
     handleLandingPage = return (layout signupPage)
 
-server :: ConnectionString -> Server Api
-server connStr = d :<|> serveDirectory "./static/"
-  where d = enter (getDismiss connStr) dynamicServer
-
-application :: ConnectionString -> Application
-application connStr = serve api (server connStr)
+server :: Dismiss -> Server Api
+server nat = d :<|> serveDirectory "./static/"
+  where d = enter nat dynamicServer
 
 main :: IO ()
 main = do
@@ -88,4 +85,7 @@ main = do
   connStr <- Conf.require conf "conn"
 
   putStrLn ("listening on port " <> show port)
-  run port (application connStr)
+
+  runStderrLoggingT $ getDismiss connStr $ \nat ->
+    let application = serve api (server nat)
+     in liftIO (run port application)
