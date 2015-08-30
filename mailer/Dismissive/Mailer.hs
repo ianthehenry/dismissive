@@ -1,5 +1,4 @@
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Dismissive.Mailer (
   MailerConf(..),
@@ -19,25 +18,7 @@ import Data.Aeson
 import Data.ByteString.Lazy (ByteString)
 import Data.Text (Text)
 import Network.Wreq
-
-type EmailAddress = Text
-
-data MailerConf =
-  MailerConf { mailerKey :: Text
-             , mailerDomain :: Text
-             }
-
-newtype MailerT m a =
-  MailerT { unMailerT :: ReaderT MailerConf m a
-          } deriving ( Functor, Applicative, Monad
-                     , MonadIO, MonadReader MailerConf
-                     )
-
-runMailerT :: Monad m => MailerConf -> MailerT m a -> m a
-runMailerT conf mailer = runReaderT (unMailerT mailer) conf
-
-instance MonadTrans MailerT where
-  lift = MailerT . lift
+import Dismissive.Mailer.Internal
 
 data Email =
   Email { emailTo :: EmailAddress

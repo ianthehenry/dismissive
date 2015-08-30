@@ -1,5 +1,4 @@
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE FlexibleContexts #-}
 
 module Dismissive.Api (
@@ -28,7 +27,7 @@ import Data.Functor.Identity
 import Data.ByteString (ByteString)
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Either
-import Control.Monad.Trans.Control (MonadBaseControl)
+import Control.Monad.Trans.Control
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Logger (MonadLogger)
@@ -36,6 +35,7 @@ import Database.Esqueleto hiding (isNothing, get)
 import Database.Persist.Postgresql (withPostgresqlPool, ConnectionString, ConnectionPool, runSqlPersistMPool)
 import Dismissive.Internal.Types
 import Dismissive.Types
+import Dismissive.Internal.Stack
 import Control.Monad.Logger
 import Data.Time.Clock
 
@@ -44,17 +44,6 @@ keyShow = Text.pack . show . fromSqlKey
 
 keyRead :: ToBackendKey SqlBackend r => Text -> Key r
 keyRead = toSqlKey . read . Text.unpack
-
-newtype DismissiveT m a =
-  DismissiveT { unDismissiveT :: StateT HashDRBG (SqlPersistT m) a
-              } deriving ( Functor, Applicative, Monad
-                         , MonadIO, MonadState HashDRBG
-                         )
-
-instance MonadTrans DismissiveT where
-  lift = DismissiveT . lift . lift
-
-type DismissiveIO a = forall m. MonadIO m => DismissiveT m a
 
 withDismissiveIO :: (MonadIO m, MonadBaseControl IO m, MonadBaseControl IO m', MonadLogger m', MonadIO m')
                  => ConnectionString

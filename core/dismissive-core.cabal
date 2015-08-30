@@ -21,10 +21,14 @@ library
                , bytestring
                , monad-logger
                , monad-control
+               , transformers-base
                , either
                , DRBG
 
-  exposed-modules: Dismissive.Types, Dismissive.Api, Dismissive.Internal.Types
+  exposed-modules: Dismissive.Types
+                 , Dismissive.Api
+                 , Dismissive.Internal.Types
+                 , Dismissive.Internal.Stack
 
   default-extensions: OverloadedStrings
                     , NoImplicitPrelude

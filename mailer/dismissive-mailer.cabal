@@ -8,12 +8,14 @@ build-type:          Simple
 cabal-version:       >=1.10
 
 library
-  exposed-modules: Dismissive.Mailer
+  exposed-modules: Dismissive.Mailer, Dismissive.Mailer.Internal
 
   build-depends: base <5.0, base-prelude
                , wreq, lens, aeson
                , bytestring
                , either
+               , monad-control
+               , transformers-base
                , mtl ==2.2.*, transformers
                , time ==1.5.*
                , text ==1.2.*
