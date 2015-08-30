@@ -12,6 +12,7 @@ library
                , servant-server, wai, either
                , mtl, transformers
                , monad-logger
+               , monad-control
                , dismissive-core
 
   exposed-modules: Dismissive.Servant
