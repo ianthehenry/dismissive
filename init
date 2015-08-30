@@ -21,3 +21,9 @@ for service in receiver sender web; do
   cabal install --only-dependencies -j
   cd -
 done
+
+for lib in servant; do
+  cd "$lib"
+  cabal sandbox add-source ../mailer
+  cd -
+done
