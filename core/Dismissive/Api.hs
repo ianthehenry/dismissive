@@ -7,7 +7,6 @@ module Dismissive.Api (
   DismissiveIO,
   ConnectionString,
   withDismissiveIO,
-  execDismissive,
   createAccount,
   getUser,
   markSent,
@@ -57,18 +56,16 @@ instance MonadTrans DismissiveT where
 
 type DismissiveIO a = forall m. MonadIO m => DismissiveT m a
 
-withDismissiveIO :: ConnectionString -> DismissiveIO a -> IO a
-withDismissiveIO connStr action = do
-  runStderrLoggingT $ (execDismissive connStr action)
-
-execDismissive :: (MonadIO m, MonadBaseControl IO m, MonadLogger m)
-               => ConnectionString
-               -> DismissiveT m b
-               -> m b
-execDismissive connStr action = do
-  rng <- liftIO (newGenIO :: IO HashDRBG)
-  let sqlPart = evalStateT (unDismissiveT action) rng
-  withPostgresqlPool connStr 10 (runSqlPool sqlPart)
+withDismissiveIO :: (MonadIO m, MonadBaseControl IO m, MonadBaseControl IO m', MonadLogger m', MonadIO m')
+                 => ConnectionString
+                 -> ((forall a. DismissiveT m a -> m a) -> m' b)
+                 -> m' b
+withDismissiveIO connStr f = withPostgresqlPool connStr 10 $ \pool ->
+  let unwrap action = do
+        rng <- liftIO (newGenIO :: IO HashDRBG)
+        let sqlPart = evalStateT (unDismissiveT action) rng
+        runSqlPool sqlPart pool
+  in f unwrap
 
 getUser :: EmailAddress -> DismissiveIO (Maybe (Entity User))
 getUser email = liftQuery (getBy (UniqueEmail email))
