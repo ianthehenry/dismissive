@@ -19,6 +19,7 @@ import Lucid
 import Landing
 import Dismissive.Types
 import Dismissive.Api
+import Dismissive.Mailer
 
 data Login = Login Text Text
 
@@ -62,13 +63,13 @@ sendInitialEmail email token = liftIO $ do
   print token
   print "done"
 
-dynamicServer :: ServerT DynamicApi (DismissiveT (EitherT ServantErr IO))
+dynamicServer :: ServerT DynamicApi (DismissiveT (MailerT (EitherT ServantErr IO)))
 dynamicServer = handleLandingPage :<|> handleAuth
   where
     handleAuth (Login "" email) = do
       createAccount email >>= \case
         Left EmailAlreadyExists -> return () -- maybe send an email here too, baby
-        Left TokenNonsense -> lift (left err500)
+        Left TokenNonsense -> (lift . lift) (left err500)
         Right token -> sendInitialEmail email token -- send an email, baby
       return $ layout (emailConfirm email)
     handleAuth _ = (return . layout . simplePage . div_) "Alright! Account successfully created."
@@ -83,9 +84,11 @@ main = do
   conf <- Conf.load [Conf.Required "web.conf", Conf.Optional "shared.conf"]
   port <- Conf.require conf "port"
   connStr <- Conf.require conf "conn"
+  mailer <- MailerConf <$> Conf.require conf "mandrill-key"
+                       <*> Conf.require conf "mail-domain"
 
   putStrLn ("listening on port " <> show port)
 
-  runStderrLoggingT $ getDismiss connStr $ \nat ->
+  runStderrLoggingT $ getDismiss connStr mailer $ \nat ->
     let application = serve api (server nat)
      in liftIO (run port application)

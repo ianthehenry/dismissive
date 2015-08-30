@@ -20,6 +20,7 @@ executable dismissive-web
                , monad-logger
                , dismissive-core
                , dismissive-servant
+               , dismissive-mailer
                , configurator
                , lucid, servant-lucid
 
