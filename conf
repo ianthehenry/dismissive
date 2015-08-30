@@ -1,1 +1,3 @@
 conn = "dbname=dismissive host=localhost user=dismissive password=dismissive port=5432"
+mandrill-key = "key"
+mail-domain = "example.com"

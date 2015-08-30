@@ -26,11 +26,10 @@ liftEither _ = left ()
 
 main :: IO ()
 main = do
-  conf <- Conf.load [Conf.Required "sender.conf", Conf.Optional "shared.conf"]
+  conf <- Conf.load [Conf.Optional "sender.conf", Conf.Optional "shared.conf"]
   connStr <- Conf.require conf "conn"
-  mandrillKey <- Conf.require conf "mandrill-key"
-  domain <- Conf.require conf "mail-domain"
-  let mailer = MailerConf mandrillKey domain
+  mailer <- MailerConf <$> Conf.require conf "mandrill-key"
+                       <*> Conf.require conf "mail-domain"
 
   runStderrLoggingT $ withDismissiveIO connStr $ \runDismissive -> runDismissive $ do
     reminders <- unsentReminders
