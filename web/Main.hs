@@ -4,6 +4,8 @@
 
 import BasePrelude hiding (left)
 import qualified Data.ByteString.Base16 as B16
+import Data.ByteString (ByteString)
+import qualified Data.ByteString as BS
 import Control.Monad.IO.Class
 import Control.Monad.Trans
 import Control.Monad.Reader
@@ -34,6 +36,8 @@ instance FromFormUrlEncoded Login where
 
 type DynamicApi = Get '[HTML] (Html ())
              :<|> "auth" :> ReqBody '[FormUrlEncoded] Login :> Post '[HTML] (Html ())
+             :<|> WaitingApi
+type WaitingApi = "waiting" :> Capture "email" EmailAddress :> Get '[HTML] (Html ())
 type StaticApi = "static" :> Raw
 type Api = DynamicApi :<|> StaticApi
 
@@ -117,12 +121,12 @@ handleSendError (Left _) = left err400
 handleSendError _ = (lift . return) ()
 
 dynamicServer :: ServerT DynamicApi (DismissiveT (MailerT (EitherT ServantErr IO)))
-dynamicServer = handleLandingPage :<|> handleAuth
+dynamicServer = handleLandingPage :<|> handleAuth :<|> handleWaiting
   where
     handleAuth (Login "" email) = do
       createAccount email >>= \case
         Left EmailAlreadyExists -> send (loginEmail email)
-        Left TokenNonsense -> (lift . lift) (left err500)
+        Left TokenNonsense -> liieft err500
         Right token -> do
           domain <- lift (asks mailerDomain)
           send (initialEmail email token domain)
@@ -130,10 +134,17 @@ dynamicServer = handleLandingPage :<|> handleAuth
           addReminder token (after (Minutes 5) now) initialReminder
           addReminder token (after (Weeks 1) now) checkInReminder
           return ()
-      return $ layout (emailConfirm email)
+      redirect' (safeLink api (Proxy :: Proxy WaitingApi) email)
     handleAuth _ = (return . layout . simplePage . div_) "Alright! Account successfully created."
     handleLandingPage = return (layout signupPage)
     send m = (lift . lift . handleSendError) =<< lift (sendMail m)
+    handleWaiting email = return $ layout (emailConfirm email)
+    liieft = lift . lift . left
+    redirect' = liieft . redirect
+
+redirect :: URI -> ServantErr
+redirect uri = err303 { errHeaders = [("Location", loc)] }
+  where loc = (Text.encodeUtf8 . Text.pack . show) uri
 
 data Duration = Weeks Integer | Minutes Integer
 
