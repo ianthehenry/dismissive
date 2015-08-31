@@ -1,9 +1,0 @@
-#!/usr/bin/env sh
-
-set -e
-
-modules=$(find . -mindepth 1 -maxdepth 1 -type d -not -name '.*')
-
-for module in $modules; do
-  ./build "$module"
-done
