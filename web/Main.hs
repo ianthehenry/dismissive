@@ -3,6 +3,7 @@
 {-# LANGUAGE RankNTypes #-}
 
 import BasePrelude hiding (left)
+import qualified Data.ByteString.Base16 as B16
 import Control.Monad.IO.Class
 import Control.Monad.Trans
 import Control.Monad.Logger
@@ -10,6 +11,8 @@ import Control.Monad.Trans.Either
 import qualified Data.Configurator as Conf
 import Dismissive.Api
 import Data.Text (Text)
+import qualified Data.Text as Text
+import qualified Data.Text.Encoding as Text
 import Dismissive.Servant
 import Network.Wai
 import Network.Wai.Handler.Warp
@@ -57,23 +60,51 @@ emailConfirm email = simplePage $ do
   (p_ . toHtml) ("An email is on its way to " <> email <> " with all the details.")
   a_ [href_ "https://en.wikipedia.org/wiki/Special:Random"] "Check out a random Wikipedia article while you wait."
 
-sendInitialEmail :: MonadIO m => EmailAddress -> Token -> m ()
-sendInitialEmail email token = liftIO $ do
-  print email
-  print token
-  print "done"
+initialEmail :: EmailAddress -> Token -> LocalEmail
+initialEmail recipient token = LocalEmail recipient "Dismissive" address address "Welcome to Dismissive" body
+  where
+    address = Text.intercalate "+" ["remind", (Text.decodeUtf8 . B16.encode) token]
+    body = Text.intercalate "\n"
+      [ "Welcome to Dismissive!"
+      , ""
+      , "Here's how it works: every time you send an email to this address:"
+      , ""
+      , address
+      , ""
+      , "We'll look at the subject to figure out a date (this is automatic; no human ever looks at your emails). If we can't figure out what the subject is supposed to mean (like \"Flurbsday at 14 AM\"), we'll fall back to \"seven days from now.\""
+      , ""
+      , "Once that date rolls around, we'll send the body of the message right back to you."
+      , ""
+      , "Cheers!"
+      ]
+
+loginEmail :: EmailAddress -> LocalEmail
+loginEmail recipient = LocalEmail recipient "Dismissive" "hello" "help" "Hello again!" body
+  where
+    body = Text.intercalate "\n"
+      [ "Hey! You already have a Dismissive account. Did you lose your token?"
+      , ""
+      , "There's currently no way to generate a new one. I just haven't written that feature yet."
+      , ""
+      , "Instead, reply to this message and I'll try to help you out."
+      ]
+
+handleSendError :: Either SendError () -> EitherT ServantErr IO ()
+handleSendError (Left _) = left err400
+handleSendError _ = (lift . return) ()
 
 dynamicServer :: ServerT DynamicApi (DismissiveT (MailerT (EitherT ServantErr IO)))
 dynamicServer = handleLandingPage :<|> handleAuth
   where
     handleAuth (Login "" email) = do
       createAccount email >>= \case
-        Left EmailAlreadyExists -> return () -- maybe send an email here too, baby
+        Left EmailAlreadyExists -> send (loginEmail email)
         Left TokenNonsense -> (lift . lift) (left err500)
-        Right token -> sendInitialEmail email token -- send an email, baby
+        Right token -> send (initialEmail email token)
       return $ layout (emailConfirm email)
     handleAuth _ = (return . layout . simplePage . div_) "Alright! Account successfully created."
     handleLandingPage = return (layout signupPage)
+    send m = (lift . lift . handleSendError) =<< lift (sendMail m)
 
 server :: Dismiss -> Server Api
 server nat = d :<|> serveDirectory "./static/"

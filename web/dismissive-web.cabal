@@ -15,7 +15,7 @@ executable dismissive-web
                , text ==1.2.*
                , servant-server, wai, warp, either
                , time
-               , bytestring
+               , bytestring, base16-bytestring
                , mtl, transformers
                , monad-logger
                , dismissive-core
