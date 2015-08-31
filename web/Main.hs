@@ -6,6 +6,7 @@ import BasePrelude hiding (left)
 import qualified Data.ByteString.Base16 as B16
 import Control.Monad.IO.Class
 import Control.Monad.Trans
+import Control.Monad.Reader
 import Control.Monad.Logger
 import Control.Monad.Trans.Either
 import qualified Data.Configurator as Conf
@@ -13,6 +14,7 @@ import Dismissive.Api
 import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
+import Data.Time.Clock
 import Dismissive.Servant
 import Network.Wai
 import Network.Wai.Handler.Warp
@@ -60,24 +62,44 @@ emailConfirm email = simplePage $ do
   (p_ . toHtml) ("An email is on its way to " <> email <> " with all the details.")
   a_ [href_ "https://en.wikipedia.org/wiki/Special:Random"] "Check out a random Wikipedia article while you wait."
 
-initialEmail :: EmailAddress -> Token -> LocalEmail
-initialEmail recipient token = LocalEmail recipient "Dismissive" from from "Welcome to Dismissive" body
+initialEmail :: EmailAddress -> Token -> Text -> LocalEmail
+initialEmail recipient token domain = LocalEmail recipient "Dismissive" from from "Welcome to Dismissive" body
   where
-    from = (address, Just "app")
-    address = Text.intercalate "-" ["remind", (Text.decodeUtf8 . B16.encode) token]
+    from = (local, Just "app")
+    local = Text.intercalate "-" ["remind", (Text.decodeUtf8 . B16.encode) token]
     body = Text.intercalate "\n"
       [ "Welcome to Dismissive!"
       , ""
       , "Here's how it works: every time you send an email to this address:"
       , ""
-      , address
+      , local <> "@app." <> domain
       , ""
       , "We'll look at the subject to figure out a date (this is automatic; no human ever looks at your emails). If we can't figure out what the subject is supposed to mean (like \"Flurbsday at 14 AM\"), we'll fall back to \"seven days from now.\""
       , ""
       , "Once that date rolls around, we'll send the body of the message right back to you."
       , ""
-      , "Cheers!"
+      , "To get you started off, I've scheduled a reminder for five minutes from now and another for one week out."
+      , ""
+      , "Happy remindering!"
       ]
+
+initialReminder :: Text
+initialReminder = Text.intercalate "\n"
+  [ "You can reply to reminder emails to snooze them until later. Just include the new date you want to be reminded as the first line of the body, or leave it blank for a 24 hour snooze."
+  , ""
+  , "Try it out! Reply to this email now with the body \"five minutes from now\" (or whenever you'd like)."
+  ]
+
+checkInReminder :: Text
+checkInReminder = Text.intercalate "\n"
+  [ "Hey there!"
+  , ""
+  , "You signed up for Dismissive one week ago. How's it been so far?"
+  , ""
+  , "You can always email thoughts@dismissive.io with any feedback, problems, or suggestions you have."
+  , ""
+  , "Stay classy!"
+  ]
 
 loginEmail :: EmailAddress -> LocalEmail
 loginEmail recipient = LocalEmail recipient "Dismissive" ("hello", Nothing) ("help", Nothing) "Hello again!" body
@@ -101,11 +123,26 @@ dynamicServer = handleLandingPage :<|> handleAuth
       createAccount email >>= \case
         Left EmailAlreadyExists -> send (loginEmail email)
         Left TokenNonsense -> (lift . lift) (left err500)
-        Right token -> send (initialEmail email token)
+        Right token -> do
+          domain <- lift (asks mailerDomain)
+          send (initialEmail email token domain)
+          now <- liftIO getCurrentTime
+          addReminder token (after (Minutes 5) now) initialReminder
+          addReminder token (after (Weeks 1) now) checkInReminder
+          return ()
       return $ layout (emailConfirm email)
     handleAuth _ = (return . layout . simplePage . div_) "Alright! Account successfully created."
     handleLandingPage = return (layout signupPage)
     send m = (lift . lift . handleSendError) =<< lift (sendMail m)
+
+data Duration = Weeks Integer | Minutes Integer
+
+after :: Duration -> UTCTime -> UTCTime
+after delta = addUTCTime (realToFrac (fromDuration delta))
+
+fromDuration :: Duration -> NominalDiffTime
+fromDuration (Weeks n) = fromDuration $ Minutes (n * 7 * 24 * 60)
+fromDuration (Minutes n) = (realToFrac . secondsToDiffTime) (n * 60)
 
 server :: Dismiss -> Server Api
 server nat = d :<|> serveDirectory "./static/"
