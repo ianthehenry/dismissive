@@ -61,8 +61,9 @@ emailConfirm email = simplePage $ do
   a_ [href_ "https://en.wikipedia.org/wiki/Special:Random"] "Check out a random Wikipedia article while you wait."
 
 initialEmail :: EmailAddress -> Token -> LocalEmail
-initialEmail recipient token = LocalEmail recipient "Dismissive" address address "Welcome to Dismissive" body
+initialEmail recipient token = LocalEmail recipient "Dismissive" from from "Welcome to Dismissive" body
   where
+    from = (address, Just "app")
     address = Text.intercalate "+" ["remind", (Text.decodeUtf8 . B16.encode) token]
     body = Text.intercalate "\n"
       [ "Welcome to Dismissive!"
@@ -79,7 +80,7 @@ initialEmail recipient token = LocalEmail recipient "Dismissive" address address
       ]
 
 loginEmail :: EmailAddress -> LocalEmail
-loginEmail recipient = LocalEmail recipient "Dismissive" "hello" "help" "Hello again!" body
+loginEmail recipient = LocalEmail recipient "Dismissive" ("hello", Nothing) ("help", Nothing) "Hello again!" body
   where
     body = Text.intercalate "\n"
       [ "Hey! You already have a Dismissive account. Did you lose your token?"

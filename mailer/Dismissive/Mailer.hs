@@ -17,6 +17,7 @@ import Control.Monad.Trans.Either
 import Data.Aeson
 import Data.ByteString.Lazy (ByteString)
 import Data.Text (Text)
+import qualified Data.Text as Text
 import Network.Wreq
 import Dismissive.Mailer.Internal
 
@@ -29,7 +30,7 @@ data Email =
         , emailBody :: Text
         }
 
-type EmailAddressLocal = Text
+type EmailAddressLocal = (Text, Maybe Text)
 
 data LocalEmail =
   LocalEmail { localEmailTo :: EmailAddress
@@ -41,7 +42,8 @@ data LocalEmail =
              }
 
 fullEmail :: Text -> EmailAddressLocal -> EmailAddress
-fullEmail domain local = local <> "@" <> domain
+fullEmail domain (local, subdomain) = local <> "@" <> (Text.intercalate "." domains)
+  where domains = catMaybes [Just domain, subdomain]
 
 globalize :: Text -> LocalEmail -> Email
 globalize domain LocalEmail {..} =
