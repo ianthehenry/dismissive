@@ -26,7 +26,7 @@ signupPage = (["/static/landing.css"], ["/static/landing.js"], ) $ do
     div_ [class_ "window-bar"] "Send email... to the future!"
     div_ [class_ "window-content"] $ do
       div_ [class_ "header"] $ do
-        field "To:" $ span_ [class_ "token"] ("remind+a82b1bf9@dismissive.io" <> caret)
+        field "To:" $ span_ [class_ "token"] ("remind-a82b1bf9@dismissive.io" <> caret)
         field "Cc:" ""
         field "Subject:" (span_ [class_ "content"] "")
       div_ [class_ "body"] (span_ [class_ "cursor"] "")

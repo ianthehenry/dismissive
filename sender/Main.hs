@@ -12,11 +12,11 @@ import Dismissive.Mailer
 import Dismissive.Types
 
 emailForReminder :: (Entity Reminder, Entity User) -> Token -> LocalEmail
-emailForReminder ( Entity { entityKey = reminderId, entityVal = reminder }
+emailForReminder ( Entity { entityVal = reminder }
                  , Entity { entityVal = User { userEmail = toEmail } }
                  ) snoozeToken =
   LocalEmail toEmail "Dismissive" ("reminder", Nothing) (replyTo, Just "app") "Reminder!" body
-  where replyTo = Text.intercalate "+" ["snooze", hexify snoozeToken, keyShow reminderId]
+  where replyTo = Text.intercalate "-" ["snooze", hexify snoozeToken]
         body = reminderBody reminder
         hexify = Text.decodeUtf8 . B16.encode
 

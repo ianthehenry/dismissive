@@ -64,7 +64,7 @@ initialEmail :: EmailAddress -> Token -> LocalEmail
 initialEmail recipient token = LocalEmail recipient "Dismissive" from from "Welcome to Dismissive" body
   where
     from = (address, Just "app")
-    address = Text.intercalate "+" ["remind", (Text.decodeUtf8 . B16.encode) token]
+    address = Text.intercalate "-" ["remind", (Text.decodeUtf8 . B16.encode) token]
     body = Text.intercalate "\n"
       [ "Welcome to Dismissive!"
       , ""

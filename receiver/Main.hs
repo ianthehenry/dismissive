@@ -3,6 +3,8 @@
 {-# LANGUAGE RankNTypes #-}
 
 import BasePrelude
+import Data.ByteString (ByteString)
+import qualified Data.ByteString as BS
 import Control.Monad.IO.Class
 import Control.Monad.Reader
 import Control.Monad.State
@@ -28,12 +30,38 @@ type Api = ReqBody '[FormUrlEncoded] [MandrillEvent] :> Post '[JSON] ()
 api :: Proxy Api
 api = Proxy
 
-extractToken :: Message -> Token
-extractToken = fst . B16.decode . Text.encodeUtf8 . head . Text.split (== '@') . messageTo
+data Action = ActionSnooze | ActionCreate deriving Eq
+
+parseAction :: Text -> Maybe Action
+parseAction "remind" = Just ActionCreate
+parseAction "snooze" = Just ActionSnooze
+parseAction _ = Nothing
+
+safeHead :: [a] -> Maybe a
+safeHead (x:_) = Just x
+safeHead _ = Nothing
+
+firstTwo :: [a] -> Maybe (a, a)
+firstTwo (x:y:_) = Just (x, y)
+firstTwo _ = Nothing
+
+parseToken :: Text -> Maybe Token
+parseToken = ensureFull . B16.decode . Text.encodeUtf8
+  where
+    ensureFull (token, "") | BS.length token > 8 = Just token
+    ensureFull _ = Nothing
+
+bimapA :: Applicative f => (a -> f b) -> (c -> f d) -> (a, c) -> f (b, d)
+bimapA f g (a, b) = (,) <$> f a <*> g b
+
+parseTo :: Message -> Maybe (Action, Token)
+parseTo message = do
+  local <- (safeHead . Text.split (== '@') . messageTo) message
+  x <- firstTwo (Text.split (== '-') local)
+  bimapA parseAction parseToken x
 
 handleMessage :: Text -> Message -> DismissiveIO ()
-handleMessage "inbound" message = do
-  let token = extractToken message
+handleMessage "inbound" message@(parseTo -> Just (ActionCreate, token)) = do
   now <- liftIO getCurrentTime
   void $ addReminder token now (messageBody message)
 handleMessage _ _ = return ()
