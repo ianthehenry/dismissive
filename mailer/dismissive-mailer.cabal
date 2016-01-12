@@ -16,9 +16,9 @@ library
                , either
                , monad-control
                , transformers-base
-               , mtl ==2.2.*, transformers
-               , time ==1.5.*
-               , text ==1.2.*
+               , mtl, transformers
+               , time
+               , text
 
   default-extensions: OverloadedStrings
                     , NoImplicitPrelude

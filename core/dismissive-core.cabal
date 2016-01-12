@@ -9,15 +9,15 @@ cabal-version:       >=1.10
 
 library
   build-depends: base <5.0, base-prelude
-               , persistent ==2.2
-               , persistent-template ==2.1.*
-               , persistent-postgresql ==2.2, monad-logger
-               , base16-bytestring ==0.1.1.*
+               , persistent
+               , persistent-template
+               , persistent-postgresql, postgresql-simple
+               , base16-bytestring
                , esqueleto
-               , mtl ==2.2.*, transformers
-               , random ==1.1.*
-               , time ==1.5.*
-               , text ==1.2.*
+               , mtl, transformers
+               , random
+               , time
+               , text
                , bytestring
                , monad-logger
                , monad-control

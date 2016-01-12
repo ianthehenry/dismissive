@@ -13,9 +13,9 @@ executable sender
   build-depends: base <5.0, base-prelude
                , bytestring
                , either
-               , mtl ==2.2.*, transformers
-               , time ==1.5.*
-               , text ==1.2.*
+               , mtl, transformers
+               , time
+               , text
                , dismissive-core
                , dismissive-mailer
                , configurator

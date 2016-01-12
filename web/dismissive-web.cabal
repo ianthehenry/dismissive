@@ -11,8 +11,8 @@ executable dismissive-web
   main-is: Main.hs
 
   build-depends: base <5.0, base-prelude
-               , aeson ==0.8.*
-               , text ==1.2.*
+               , aeson
+               , text
                , servant-server, wai, warp, either
                , time
                , bytestring, base16-bytestring
