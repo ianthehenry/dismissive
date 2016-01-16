@@ -43,7 +43,7 @@ data LocalEmail =
 
 fullEmail :: Text -> EmailAddressLocal -> EmailAddress
 fullEmail domain (local, subdomain) = local <> "@" <> (Text.intercalate "." domains)
-  where domains = catMaybes [Just domain, subdomain]
+  where domains = catMaybes [subdomain, Just domain]
 
 globalize :: Text -> LocalEmail -> Email
 globalize domain LocalEmail {..} =
