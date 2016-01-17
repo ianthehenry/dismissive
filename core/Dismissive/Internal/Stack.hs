@@ -13,6 +13,7 @@ import Control.Monad.State
 import Control.Monad.Reader
 import Control.Monad.Trans
 import Control.Monad.Base
+import Control.Monad.Except
 import Control.Monad.Trans.Control
 import Crypto.Random.DRBG
 import Database.Persist.Sql (SqlPersistT)
@@ -21,9 +22,18 @@ newtype DismissiveT m a =
   DismissiveT { unDismissiveT :: StateT HashDRBG (SqlPersistT m) a
               } deriving ( Functor, Applicative, Monad
                          , MonadIO, MonadState HashDRBG
+                         , MonadError e
                          )
 
 deriving instance (MonadBase b m) => MonadBase b (DismissiveT m)
+
+instance MonadReader r m => MonadReader r (DismissiveT m) where
+  ask = lift ask
+  local = mapDismissT . local
+  reader = lift . reader
+
+mapDismissT :: (m (a, HashDRBG) -> n (b, HashDRBG)) -> DismissiveT m a -> DismissiveT n b
+mapDismissT f = DismissiveT . (mapStateT . mapReaderT) f . unDismissiveT
 
 instance MonadTrans DismissiveT where
   lift = DismissiveT . lift . lift

@@ -9,7 +9,7 @@ import Control.Monad.IO.Class
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Logger
-import Control.Monad.Trans.Either
+import Control.Monad.Except
 import qualified Data.Configurator as Conf
 import Data.Time.Clock
 import Data.Text (Text)
@@ -69,7 +69,9 @@ handleMessage _ _ = return ()
 uncurryEvent :: (Text -> Message -> a) -> MandrillEvent -> a
 uncurryEvent f MandrillEvent { event, msg } = f event msg
 
-server :: ServerT Api (DismissiveT (MailerT (EitherT ServantErr IO)))
+type HandlerStack = DismissiveT (MailerT (ExceptT ServantErr IO))
+
+server :: ServerT Api HandlerStack
 server events = for_ events (uncurryEvent handleMessage)
 
 server' :: Dismiss -> Server Api

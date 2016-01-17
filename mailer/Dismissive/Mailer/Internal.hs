@@ -9,6 +9,7 @@ module Dismissive.Mailer.Internal where
 
 import BasePrelude
 import Control.Monad.Reader
+import Control.Monad.Except
 import Control.Monad.Trans.Control
 import Control.Monad.Base
 import Data.Text (Text)
@@ -24,6 +25,7 @@ newtype MailerT m a =
   MailerT { unMailerT :: ReaderT MailerConf m a
           } deriving ( Functor, Applicative, Monad
                      , MonadIO, MonadReader MailerConf
+                     , MonadError e
                      )
 
 deriving instance (MonadBase b m) => MonadBase b (MailerT m)

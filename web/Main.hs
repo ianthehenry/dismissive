@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 import BasePrelude hiding (left)
 import qualified Data.ByteString.Base16 as B16
@@ -10,7 +11,7 @@ import Control.Monad.IO.Class
 import Control.Monad.Trans
 import Control.Monad.Reader
 import Control.Monad.Logger
-import Control.Monad.Trans.Either
+import Control.Monad.Except
 import qualified Data.Configurator as Conf
 import Dismissive.Api
 import Data.Text (Text)
@@ -116,19 +117,21 @@ loginEmail recipient = LocalEmail recipient "Dismissive" ("hello", Nothing) ("he
       , "Instead, reply to this message and I'll try to help you out."
       ]
 
-handleSendError :: Either SendError () -> EitherT ServantErr IO ()
-handleSendError (Left _) = left err400
-handleSendError _ = (lift . return) ()
+handleSendError :: (MonadError ServantErr m) => Either SendError () -> m ()
+handleSendError (Left _) = throwError err400
+handleSendError _ = pure ()
 
-dynamicServer :: ServerT DynamicApi (DismissiveT (MailerT (EitherT ServantErr IO)))
+type HandlerStack = DismissiveT (MailerT (ExceptT ServantErr IO))
+
+dynamicServer :: ServerT DynamicApi HandlerStack
 dynamicServer = handleLandingPage :<|> handleAuth :<|> handleWaiting
   where
     handleAuth (Login "" email) = do
       createAccount email >>= \case
         Left EmailAlreadyExists -> send (loginEmail email)
-        Left TokenNonsense -> liieft err500
+        Left TokenNonsense -> throwError err500
         Right token -> do
-          domain <- lift (asks mailerDomain)
+          domain <- asks mailerDomain
           send (initialEmail email token domain)
           now <- liftIO getCurrentTime
           addReminder token (after (Minutes 5) now) initialReminder
@@ -137,10 +140,9 @@ dynamicServer = handleLandingPage :<|> handleAuth :<|> handleWaiting
       redirect' (safeLink api (Proxy :: Proxy WaitingApi) email)
     handleAuth _ = (return . layout . simplePage . div_) "Alright! Account successfully created."
     handleLandingPage = return (layout signupPage)
-    send m = (lift . lift . handleSendError) =<< lift (sendMail m)
+    send m = handleSendError =<< sendMail m
     handleWaiting email = return $ layout (emailConfirm email)
-    liieft = lift . lift . left
-    redirect' = liieft . redirect
+    redirect' = throwError . redirect
 
 redirect :: URI -> ServantErr
 redirect uri = err303 { errHeaders = [("Location", loc)] }

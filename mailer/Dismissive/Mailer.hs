@@ -13,7 +13,7 @@ import BasePrelude hiding (left)
 import Control.Lens hiding ((.=))
 import Control.Monad.IO.Class
 import Control.Monad.Reader
-import Control.Monad.Trans.Either
+import Control.Monad.Except
 import Data.Aeson
 import Data.ByteString.Lazy (ByteString)
 import Data.Text (Text)
@@ -102,25 +102,25 @@ instance FromJSON MResponse where
 responseJSON :: FromJSON a => Getter (Response ByteString) (Maybe a)
 responseJSON = responseBody . to decode
 
-ensure :: Monad m => Bool -> a -> EitherT a m ()
+ensure :: (MonadError e m) => Bool -> e -> m ()
 ensure True  _   = return ()
-ensure False err = left err
+ensure False err = throwError err
 
-mandrill :: (MonadIO m) => Email -> MailerT m (Response ByteString)
+mandrill :: (MonadIO m, MonadReader MailerConf m) => Email -> m (Response ByteString)
 mandrill email = do
   key <- asks mailerKey
   let body = object ["message" .= email, "key" .= key]
   liftIO $ post "https://mandrillapp.com/api/1.0/messages/send" (toJSON body)
 
-sendMail :: MonadIO m => LocalEmail -> MailerT m (Either SendError ())
-sendMail localEmail = runEitherT $ do
+sendMail :: (MonadReader MailerConf m, MonadIO m) => LocalEmail -> m (Either SendError ())
+sendMail localEmail = runExceptT $ do
   domain <- asks mailerDomain
-  res <- lift $ mandrill (globalize domain localEmail)
+  res <- mandrill (globalize domain localEmail)
   let status = res ^. responseStatus.statusCode
   ensure (status == 200) (UnrecognizedStatusCode status)
   let maybeResponses = res ^. responseJSON
   case maybeResponses of
     Just [MSuccess _]  -> return ()
-    Just [MRejected r] -> left (Rejected r)
-    Just [MError e]    -> left (MandrillError e)
-    _                  -> left MalformedResponse
+    Just [MRejected r] -> throwError (Rejected r)
+    Just [MError e]    -> throwError (MandrillError e)
+    _                  -> throwError MalformedResponse
